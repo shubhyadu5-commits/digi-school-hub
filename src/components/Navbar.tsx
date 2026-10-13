@@ -259,9 +259,12 @@ export default function Navbar() {
               <Link to="/dashboard" className={`hover:text-blue-600 transition ${location.pathname === '/dashboard' ? 'text-blue-600 font-bold' : ''}`}>
                 ERP Portal
               </Link>
-              <Link to="/super-admin" className={`hover:text-amber-600 transition flex items-center gap-1 ${location.pathname === '/super-admin' ? 'text-amber-600 font-bold' : ''}`}>
-                <span>⚡</span> Approvals
-              </Link>
+              {/* 🔥 YAHAN STRICT CHECK LAGAYA HAI 🔥 */}
+              {userEmail === 'shubhyadu5@gmail.com' && (
+                <Link to="/super-admin" className={`hover:text-amber-600 transition flex items-center gap-1 ${location.pathname === '/super-admin' ? 'text-amber-600 font-bold' : ''}`}>
+                  <span>⚡</span> Approvals
+                </Link>
+              )}
             </nav>
           )}
         </div>
@@ -294,6 +297,15 @@ export default function Navbar() {
                   </div>
 
                   <div className="py-1.5 px-2 space-y-1">
+                    {/* 🔥 DROPDOWN ME BHI SUPER ADMIN BUTTON SIRF AAPKE LIYE 🔥 */}
+                    {userEmail === 'shubhyadu5@gmail.com' && (
+                      <button
+                        onClick={() => { setDropdownOpen(false); navigate('/super-admin'); }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center gap-2.5 transition"
+                      >
+                        <span>⚡</span> Super Admin Panel
+                      </button>
+                    )}
                     <button
                       onClick={() => { setDropdownOpen(false); navigate('/dashboard?tab=profile'); }}
                       className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2.5 transition"
