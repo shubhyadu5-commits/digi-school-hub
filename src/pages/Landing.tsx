@@ -18,7 +18,7 @@ export default function Landing() {
         
         {/* Sub-Header Bar inside the Frame */}
         <div className="flex flex-wrap items-center justify-between pb-4 mb-6 border-b border-slate-100 px-2 text-xs sm:text-sm">
-          <span className="font-bold text-slate-800 tracking-tight">Digital Campus ERP</span>
+          <span className="font-bold text-slate-800 tracking-tight">SchoolWeave Live ERP</span>
           <div className="hidden md:flex items-center gap-6 text-slate-500 font-medium">
             <span onClick={() => navigate('/onboarding')} className="cursor-pointer hover:text-blue-600">Search Institutes</span>
             <span onClick={() => navigate('/onboarding')} className="cursor-pointer hover:text-blue-600">Register College</span>
@@ -66,7 +66,7 @@ export default function Landing() {
           {/* CENTER HERO CARD (Soft Sky Blue Gradient like Wix "Buy your perfect domain name") */}
           <div className="lg:col-span-6 rounded-3xl bg-gradient-to-b from-[#e3effd] via-[#cbe2fc] to-[#b3d4ff] p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-inner border border-blue-200/60 min-h-[440px]">
             <span className="bg-white/80 backdrop-blur-xs text-blue-700 text-xs font-extrabold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-2xs mb-5">
-              ✨ Next-Gen Institutional ERP
+              🚀 WELCOME TO SCHOOLWEAVE LIVE
             </span>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-slate-950 tracking-tight leading-[1.1] mb-5">

@@ -78,9 +78,16 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     setDropdownOpen(false);
-    localStorage.removeItem('campus_active_session');
+    
+    // 1. Sign out from Supabase auth first
     await supabase.auth.signOut();
-    navigate('/login');
+    
+    // 2. Completely wipe out all local storage, session storage & cached keys
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // 3. Force browser hard redirect and reload to clear all React memory states
+    window.location.href = '/login';
   };
 
   const isDashboard = location.pathname === '/dashboard';
@@ -89,14 +96,14 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
         
-        {/* Left: Brand "Digi School Hub" & Dynamic Role Navigation */}
+        {/* Left: Brand "SchoolWeave Live" & Dynamic Role Navigation */}
         <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-black text-lg flex items-center justify-center shadow-md group-hover:scale-105 transition">
-              D
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-700 to-purple-600 text-white font-black text-lg flex items-center justify-center shadow-md group-hover:scale-105 transition">
+              S
             </div>
             <span className="text-xl font-black tracking-tight text-slate-900">
-              Digi <span className="text-blue-600">School Hub</span>
+              SchoolWeave <span className="text-indigo-600">Live</span>
             </span>
           </Link>
 
@@ -107,7 +114,7 @@ export default function Navbar() {
                 onClick={() => navigate('/dashboard?tab=profile')}
                 className={`px-3 py-1.5 rounded-full transition shrink-0 ${
                   currentTab === 'profile' || currentTab === 'overview'
-                    ? 'bg-blue-900 text-white shadow-xs'
+                    ? 'bg-indigo-900 text-white shadow-xs'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -117,7 +124,7 @@ export default function Navbar() {
                 onClick={() => navigate('/dashboard?tab=attendance')}
                 className={`px-3 py-1.5 rounded-full transition shrink-0 ${
                   currentTab === 'attendance'
-                    ? 'bg-blue-900 text-white shadow-xs'
+                    ? 'bg-indigo-900 text-white shadow-xs'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -127,7 +134,7 @@ export default function Navbar() {
                 onClick={() => navigate('/dashboard?tab=results')}
                 className={`px-3 py-1.5 rounded-full transition shrink-0 ${
                   currentTab === 'results'
-                    ? 'bg-blue-900 text-white shadow-xs'
+                    ? 'bg-indigo-900 text-white shadow-xs'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -137,7 +144,7 @@ export default function Navbar() {
                 onClick={() => navigate('/dashboard?tab=notices')}
                 className={`px-3 py-1.5 rounded-full transition shrink-0 ${
                   currentTab === 'notices'
-                    ? 'bg-blue-900 text-white shadow-xs'
+                    ? 'bg-indigo-900 text-white shadow-xs'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -250,16 +257,15 @@ export default function Navbar() {
 
           {!isDashboard && (
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 border-l border-slate-200 pl-6">
-              <Link to="/" className={`hover:text-blue-600 transition ${location.pathname === '/' ? 'text-blue-600 font-bold' : ''}`}>
+              <Link to="/" className={`hover:text-indigo-600 transition ${location.pathname === '/' ? 'text-indigo-600 font-bold' : ''}`}>
                 Overview
               </Link>
-              <Link to="/onboarding" className={`hover:text-blue-600 transition ${location.pathname === '/onboarding' ? 'text-blue-600 font-bold' : ''}`}>
+              <Link to="/onboarding" className={`hover:text-indigo-600 transition ${location.pathname === '/onboarding' ? 'text-indigo-600 font-bold' : ''}`}>
                 Find Schools & Colleges
               </Link>
-              <Link to="/dashboard" className={`hover:text-blue-600 transition ${location.pathname === '/dashboard' ? 'text-blue-600 font-bold' : ''}`}>
+              <Link to="/dashboard" className={`hover:text-indigo-600 transition ${location.pathname === '/dashboard' ? 'text-indigo-600 font-bold' : ''}`}>
                 ERP Portal
               </Link>
-              {/* 🔥 YAHAN STRICT CHECK LAGAYA HAI 🔥 */}
               {userEmail === 'shubhyadu5@gmail.com' && (
                 <Link to="/super-admin" className={`hover:text-amber-600 transition flex items-center gap-1 ${location.pathname === '/super-admin' ? 'text-amber-600 font-bold' : ''}`}>
                   <span>⚡</span> Approvals
@@ -275,9 +281,9 @@ export default function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 p-1 pr-3 rounded-full bg-slate-100 hover:bg-blue-50 border border-slate-200 transition cursor-pointer"
+                className="flex items-center gap-2 p-1 pr-3 rounded-full bg-slate-100 hover:bg-indigo-50 border border-slate-200 transition cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-950 text-white font-bold text-sm flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-full bg-indigo-950 text-white font-bold text-sm flex items-center justify-center shadow-xs">
                   {getFirstNameFromEmail(userEmail)[0]}
                 </div>
                 <span className="hidden sm:inline text-xs font-extrabold text-slate-800">
@@ -289,7 +295,7 @@ export default function Navbar() {
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 py-3 z-50">
                   <div className="px-4 py-2.5 border-b border-slate-100">
-                    <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Signed in as</p>
+                    <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Signed in as</p>
                     <p className="text-base font-extrabold text-slate-900 mt-0.5">
                       {getFirstNameFromEmail(userEmail)}
                     </p>
@@ -297,7 +303,6 @@ export default function Navbar() {
                   </div>
 
                   <div className="py-1.5 px-2 space-y-1">
-                    {/* 🔥 DROPDOWN ME BHI SUPER ADMIN BUTTON SIRF AAPKE LIYE 🔥 */}
                     {userEmail === 'shubhyadu5@gmail.com' && (
                       <button
                         onClick={() => { setDropdownOpen(false); navigate('/super-admin'); }}
@@ -320,7 +325,7 @@ export default function Navbar() {
                     </button>
                     <button
                       onClick={handleResetPassword}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-blue-700 hover:bg-blue-50 flex items-center gap-2.5 transition"
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-50 flex items-center gap-2.5 transition"
                     >
                       <span>🔑</span> Reset Password
                     </button>
@@ -340,7 +345,7 @@ export default function Navbar() {
           ) : (
             <button
               onClick={() => navigate('/login')}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-sm font-bold px-5 py-2 rounded-lg shadow-sm transition"
+              className="bg-indigo-900 hover:bg-indigo-800 text-white text-sm font-bold px-5 py-2 rounded-lg shadow-sm transition"
             >
               Login
             </button>

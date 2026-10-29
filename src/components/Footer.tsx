@@ -15,7 +15,7 @@ export default function Footer() {
         <div className="rounded-3xl bg-gradient-to-r from-[#e3effd] via-[#cbe2fc] to-[#b3d4ff] p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6 border border-blue-200/70 shadow-xs">
           <div className="text-center md:text-left">
             <span className="bg-white/80 text-blue-700 text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full">
-              🚀 Welcome to Digi School Hub
+              🚀 Welcome to SchoolWeave Live
             </span>
             <h3 className="text-2xl sm:text-3xl font-black text-slate-950 mt-2 tracking-tight">
               Launch your digital school or college portal in minutes.
@@ -47,34 +47,49 @@ export default function Footer() {
         {/* Column 1: Brand Info */}
         <div className="lg:col-span-2 space-y-4">
           <Link to="/" className="flex items-center gap-2.5 group w-fit">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-black text-lg flex items-center justify-center shadow-sm">
-              D
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-700 to-purple-600 text-white font-black text-lg flex items-center justify-center shadow-sm">
+              S
             </div>
             <span className="text-xl font-black tracking-tight text-slate-900">
-              Digi <span className="text-blue-600">School Hub</span>
+              SchoolWeave <span className="text-indigo-600">Live</span>
             </span>
           </Link>
           <p className="text-xs sm:text-sm text-slate-500 max-w-sm leading-relaxed">
-            <strong>Digi School Hub</strong> is a next-generation institutional ERP & digital school platform designed & developed by <strong className="text-slate-800">Shubham Yadav</strong> to connect Administrators, Faculty, and Students in real time.
+            <strong>SchoolWeave Live</strong> is a next-generation institutional ERP & digital school platform designed & developed by <strong className="text-slate-800">Shubham Yadav</strong> to connect Administrators, Faculty, and Students in real time.
           </p>
           <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full w-fit">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            All Digi School Hub Systems Operational
+            All SchoolWeave Live Systems Operational
           </div>
         </div>
 
         {/* Column 2: Platform Navigation */}
-        <div>
-          <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 mb-4">
-            Platform
-          </h4>
-          <ul className="space-y-2.5 text-sm font-medium text-slate-500">
-            <li><Link to="/" className="hover:text-blue-600 transition">Overview & Home</Link></li>
-            <li><Link to="/onboarding" className="hover:text-blue-600 transition">School & College Directory</Link></li>
-            <li><Link to="/onboarding" className="hover:text-blue-600 transition">Register New Institute</Link></li>
-            <li><Link to="/dashboard" className="hover:text-blue-600 transition">Live ERP Dashboard</Link></li>
-          </ul>
-        </div>
+        {/* PLATFORM SECTION */}
+<div>
+  <h3 className="font-bold text-slate-900 tracking-wider text-sm mb-4 uppercase">Platform</h3>
+  <ul className="space-y-4">
+    <li>
+      <Link to="/" className="text-slate-600 hover:text-blue-600 font-medium transition block py-1">
+        Overview & Home
+      </Link>
+    </li>
+    <li>
+      <Link to="/onboarding" className="text-slate-600 hover:text-blue-600 font-medium transition block py-1">
+        School & College Directory
+      </Link>
+    </li>
+    <li>
+      <Link to="/onboarding" className="text-slate-600 hover:text-blue-600 font-medium transition block py-1">
+        Register New Institute
+      </Link>
+    </li>
+    <li>
+      <Link to="/dashboard" className="text-slate-600 hover:text-blue-600 font-medium transition block py-1">
+        Live ERP Dashboard
+      </Link>
+    </li>
+  </ul>
+</div>
 
         {/* Column 3: Role Portals */}
         <div>
@@ -129,7 +144,7 @@ export default function Footer() {
       <div className="border-t border-slate-100 bg-slate-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-medium">
           <p>
-            © {new Date().getFullYear()} <strong>Digi School Hub</strong> • Built by{' '}
+            © {new Date().getFullYear()} <strong>SchoolWeave Live</strong> Built by{' '}
             <button onClick={() => setActiveModal('about')} className="text-blue-600 font-bold hover:underline">
               Shubham Yadav
             </button>
@@ -175,7 +190,7 @@ export default function Footer() {
                       Interactive Documentation
                     </span>
                     <h3 className="text-2xl font-black text-slate-900 mt-2">
-                      📘 Digi School Hub — How to Use & Troubleshoot
+                      📘 SchoolWeave Live — How to Use & Troubleshoot
                     </h3>
                   </div>
                   <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-700 text-2xl font-bold">×</button>
@@ -205,10 +220,10 @@ export default function Footer() {
                   </div>
 
                   <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-1.5">
-                    <h4 className="font-extrabold text-blue-950 text-sm">🛠️ Quick Troubleshooting Tips</h4>
-                    <p>• <strong>Student/Teacher Login Not Found?</strong> Ensure the Admin has added the Student (in that exact Class) or Teacher ID first.</p>
-                    <p>• <strong>0 Students Showing in Teacher Attendance?</strong> Check that students are added under the exact same Class Name that you clicked in the Time-Table.</p>
-                    <p>• <strong>Want to Switch Role or Reset Password?</strong> Click your profile avatar in the top-right corner of the navbar!</p>
+                    <h4 className="font-extrabold text-blue-950 text-sm">4. 🛠️ Quick Troubleshooting Tips</h4>
+                    <p><strong>Student/Teacher Login Not Found?</strong> Ensure the Admin has added the Student (in that exact Class) or Teacher ID first.</p>
+                    <p><strong>0 Students Showing in Teacher Attendance?</strong> Check that students are added under the exact same Class Name that you clicked in the Time-Table.</p>
+                    <p><strong>Want to Switch Role or Reset Password?</strong> Click your profile avatar in the top-right corner of the navbar!</p>
                   </div>
                 </div>
               </>
@@ -220,7 +235,7 @@ export default function Footer() {
                 <div className="flex justify-between items-start border-b pb-4">
                   <div>
                     <span className="text-[11px] font-extrabold uppercase tracking-wider bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                      About Digi School Hub & Creator
+                      About SchoolWeave Live & Creator
                     </span>
                     <h3 className="text-2xl font-black text-slate-900 mt-2">
                       Empowering Digital Schools & Campuses
@@ -231,7 +246,7 @@ export default function Footer() {
 
                 <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
                   <p>
-                    <strong>Digi School Hub</strong> is a comprehensive, multi-institutional digital school and college ERP platform built to bring educational institutions onto a single modern cloud ecosystem.
+                    <strong>SchoolWeave Live</strong> is a comprehensive, multi-institutional digital school and college ERP platform built to bring educational institutions onto a single modern cloud ecosystem.
                   </p>
 
                   <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
@@ -265,7 +280,7 @@ export default function Footer() {
                       Data Protection
                     </span>
                     <h3 className="text-2xl font-black text-slate-900 mt-2">
-                      🛡️ Privacy Policy — Digi School Hub
+                      🛡️ Privacy Policy — SchoolWeave Live
                     </h3>
                   </div>
                   <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-700 text-2xl font-bold">×</button>
@@ -273,7 +288,7 @@ export default function Footer() {
 
                 <div className="space-y-3 text-sm text-slate-600 leading-relaxed">
                   <p>
-                    At <strong>Digi School Hub</strong> (developed by <strong>Shubham Yadav</strong>), we take institutional and student privacy seriously:
+                    At <strong>SchoolWeave Live</strong> (developed by <strong>Shubham Yadav</strong>), we take institutional and student privacy seriously:
                   </p>
                   <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
                     <li><strong>Strict Role Isolation:</strong> Students can only view their own read-only attendance and marksheet records using their verified Roll Number, Name, and Class.</li>
@@ -293,7 +308,7 @@ export default function Footer() {
                       Platform Guidelines
                     </span>
                     <h3 className="text-2xl font-black text-slate-900 mt-2">
-                      📜 Terms of Service — Digi School Hub
+                      📜 Terms of Service — SchoolWeave Live
                     </h3>
                   </div>
                   <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-700 text-2xl font-bold">×</button>
@@ -301,7 +316,7 @@ export default function Footer() {
 
                 <div className="space-y-3 text-sm text-slate-600 leading-relaxed">
                   <p>
-                    By registering or accessing an institution on <strong>Digi School Hub</strong>, you agree to the following terms:
+                    By registering or accessing an institution on <strong>SchoolWeave Live</strong>, you agree to the following terms:
                   </p>
                   <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
                     <li><strong>Authentic Institutional Registration:</strong> Only authorized Principals, Directors, or HODs should register a new school/college for Super Admin approval.</li>
@@ -329,7 +344,7 @@ export default function Footer() {
 
                 <div className="space-y-3 text-sm text-slate-600 leading-relaxed">
                   <p>
-                    <strong>Digi School Hub</strong> uses a multi-layered verification system engineered by <strong>Shubham Yadav</strong> to keep every digital school & college safe:
+                    <strong>SchoolWeave Live</strong> uses a multi-layered verification system engineered by <strong>Shubham Yadav</strong> to keep every digital school & college safe:
                   </p>
                   <div className="space-y-2.5 text-xs sm:text-sm">
                     <div className="p-3 bg-slate-50 rounded-xl border">

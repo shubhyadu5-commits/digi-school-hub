@@ -29,18 +29,7 @@ interface ScheduleSlot {
   subject_name: string;
 }
 
-const DEFAULT_CLASSES = [
-  'Class 1',
-  'Class 2',
-  'Class 3',
-  'Class 4',
-  'Class 5',
-  'Class 6',
-  'B.Tech CS 1st Year',
-  'B.Tech CS 2nd Year'
-];
-
-// Master Time-Table Periods (Matching your screenshot!)
+// Master Time-Table Periods
 const PERIOD_COLUMNS = [
   { key: 'Period 1 (09:00 - 09:45)', label: 'Period 1 (09:00 - 09:45)' },
   { key: 'Period 2 (09:45 - 10:30)', label: 'Period 2 (09:45 - 10:30)' },
@@ -78,9 +67,9 @@ export default function Dashboard() {
   const [coAdmins, setCoAdmins] = useState<string[]>([]);
   const [newModEmail, setNewModEmail] = useState('');
 
-  const [classes, setClasses] = useState<any[]>([]);
+  // DYNAMIC CLASSES STATE (Using campus_classes)
+  const [classList, setClassList] = useState<any[]>([]);
   const [newClassName, setNewClassName] = useState('');
-
   const [selectedAdminClass, setSelectedAdminClass] = useState<string | null>(null);
 
   // Result Marksheet States
@@ -96,7 +85,7 @@ export default function Dashboard() {
   const [cellTeacherId, setCellTeacherId] = useState<string>('');
   const [cellSubject, setCellSubject] = useState<string>('');
 
-  // Teacher's Clicked Period Cell -> Opens Attendance Register for that Class & Period
+  // Teacher's Clicked Period Cell
   const [activeClickedPeriod, setActiveClickedPeriod] = useState<{
     className: string;
     periodKey: string;
@@ -116,7 +105,6 @@ export default function Dashboard() {
   const [sSection, setSSection] = useState('A');
   const [sPosition, setSPosition] = useState('1st');
 
-  // Attendance States
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
@@ -169,14 +157,17 @@ export default function Dashboard() {
       }
 
       const { data: pData } = await supabase.from('posts').select('*').eq('institute_id', finalProfile.institute_id).order('created_at', { ascending: false });
-      const { data: cData } = await supabase.from('campus_classes').select('*').eq('institute_id', finalProfile.institute_id);
+      
+      // FETCH CAMPUS CLASSES FROM DATABASE
+      const { data: cData } = await supabase.from('campus_classes').select('*').eq('institute_id', finalProfile.institute_id).order('class_name');
+      
       const { data: tData } = await supabase.from('campus_teachers').select('*').eq('institute_id', finalProfile.institute_id);
       const { data: sData } = await supabase.from('campus_students').select('*').eq('institute_id', finalProfile.institute_id).order('roll_number', { ascending: true });
       const { data: aData } = await supabase.from('campus_attendance').select('*').eq('institute_id', finalProfile.institute_id).order('attendance_date', { ascending: false });
       const { data: schedData } = await supabase.from('campus_schedules').select('*').eq('institute_id', finalProfile.institute_id);
 
       if (pData) setPosts(pData);
-      if (cData) setClasses(cData);
+      if (cData) setClassList(cData);
       if (tData) setTeachers(tData);
       if (aData) setAttendanceRecords(aData);
       if (schedData) setSchedules(schedData);
@@ -184,7 +175,7 @@ export default function Dashboard() {
       if (sData) {
         setStudents(sData);
         if (finalProfile.role === 'student') {
-          const found = sData.find(s => s.roll_number === finalProfile.member_code || s.name.toLowerCase() === finalProfile.member_name?.toLowerCase());
+          const found = sData.find((s: any) => s.roll_number === finalProfile.member_code || s.name.toLowerCase() === finalProfile.member_name?.toLowerCase());
           setMyStudentData(found || null);
         }
       }
@@ -195,12 +186,10 @@ export default function Dashboard() {
     loadDashboard();
   }, [navigate]);
 
-  const allClassOptions = Array.from(
-    new Set([...classes.map(c => c.class_name), ...DEFAULT_CLASSES])
-  );
+  const allClassOptions = classList.map(c => c.class_name);
 
   // ============================================================================
-  // 🗓️ ADMIN: ASSIGN OR EDIT A CELL IN THE MASTER TIME-TABLE GRID
+  // ADMIN & TEACHER FUNCTIONS
   // ============================================================================
   const handleAdminClickCell = (className: string, periodKey: string, existingSlot?: ScheduleSlot) => {
     setEditingCell({ className, periodKey });
@@ -216,7 +205,6 @@ export default function Dashboard() {
       t => t.unique_id.toLowerCase() === cellTeacherId.trim().toLowerCase()
     );
 
-    // Delete old slot for this class + period if exists
     await supabase
       .from('campus_schedules')
       .delete()
@@ -233,13 +221,10 @@ export default function Dashboard() {
       subject_name: cellSubject.trim() || 'Lecture'
     };
 
-    const { data, error } = await supabase
-      .from('campus_schedules')
-      .insert([payload])
-      .select();
+    const { data, error } = await supabase.from('campus_schedules').insert([payload]).select();
 
     if (error) {
-      alert('Error saving slot (Make sure you ran the campus_schedules SQL!): ' + error.message);
+      alert('Error saving slot: ' + error.message);
     } else if (data) {
       const remaining = schedules.filter(
         s => !(s.class_name === editingCell.className && s.lecture_time === editingCell.periodKey)
@@ -263,13 +248,6 @@ export default function Dashboard() {
     ));
     setEditingCell(null);
   };
-
-  // ============================================================================
-  // 📋 TEACHER: CLICK PERIOD IN TIME-TABLE -> MARK P/A -> SAVE COMPLETE SHEET
-  // ============================================================================
-  const activeLectureLabel = activeClickedPeriod
-    ? `${activeClickedPeriod.periodKey} - ${activeClickedPeriod.subjectName}`
-    : 'General Lecture';
 
   const handleSelectAttendanceLocal = (stu: any, status: 'P' | 'A') => {
     if (!profile || !activeClickedPeriod) return;
@@ -357,9 +335,10 @@ export default function Dashboard() {
     }
   };
 
-  // ============================================================================
-  // 📊 6-SUBJECT RESULT MARKSHEET FUNCTIONS
-  // ============================================================================
+  const activeLectureLabel = activeClickedPeriod
+    ? `${activeClickedPeriod.periodKey} - ${activeClickedPeriod.subjectName}`
+    : 'General Lecture';
+
   const handleOpenStudentMarksheet = (stu: any) => {
     setSelectedResultStudent(stu);
     setStudentRankInput(stu.position || '1st');
@@ -389,7 +368,6 @@ export default function Dashboard() {
     let obtainedTotal = 0;
     let maxTotal = 0;
     let filledCount = 0;
-
     rows.forEach(r => {
       if (r.subject.trim() !== '' || r.marks.trim() !== '') {
         filledCount++;
@@ -397,7 +375,6 @@ export default function Dashboard() {
         maxTotal += Number(r.maxMarks) || 100;
       }
     });
-
     const percentage = maxTotal > 0 ? Number(((obtainedTotal / maxTotal) * 100).toFixed(2)) : 0;
     return { obtainedTotal, maxTotal, percentage, filledCount };
   };
@@ -437,7 +414,6 @@ export default function Dashboard() {
     }
   };
 
-  // ADMIN CRUD FUNCTIONS
   const handleSaveAdminCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile || !adminUsername.trim() || !adminPassword.trim()) return;
@@ -474,8 +450,30 @@ export default function Dashboard() {
       .insert([{ institute_id: profile.institute_id, class_name: newClassName.trim() }])
       .select();
     if (!error && data) {
-      setClasses([...classes, data[0]]);
+      setClassList([...classList, data[0]]);
       setNewClassName('');
+    } else {
+      alert('Error adding class: ' + error?.message);
+    }
+  };
+
+  const handleDeleteClass = async (e: React.MouseEvent, className: string) => {
+    e.stopPropagation();
+    const confirmDelete = window.confirm(`Kya aap sach mein "${className}" ko delete karna chahte hain?`);
+    if (!confirmDelete || !profile) return;
+
+    const { error } = await supabase
+      .from('campus_classes')
+      .delete()
+      .eq('institute_id', profile.institute_id)
+      .eq('class_name', className);
+    
+    if (error) {
+      alert('Error deleting class: ' + error.message);
+    } else {
+      setClassList(classList.filter(c => c.class_name !== className));
+      if (selectedAdminClass === className) setSelectedAdminClass(null);
+      alert(`✅ ${className} deleted successfully!`);
     }
   };
 
@@ -544,7 +542,7 @@ export default function Dashboard() {
       setStudents([...students, data[0]]);
       setSName('');
       setSRoll('');
-      alert(`✅ Student "${data[0].name}" (Roll No: ${data[0].roll_number}) added to ${selectedAdminClass}!`);
+      alert(`✅ Student "${data[0].name}" added to ${selectedAdminClass}!`);
     }
   };
 
@@ -584,7 +582,7 @@ export default function Dashboard() {
   };
 
   // ============================================================================
-  // 🖤 MASTER TIME-TABLE GRID RENDERER (EXACTLY LIKE YOUR SCREENSHOT!)
+  // MASTER TIME-TABLE GRID RENDERER
   // ============================================================================
   const renderMasterTimeTableGrid = (mode: 'admin' | 'teacher') => {
     return (
@@ -592,20 +590,19 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-slate-800">
           <div>
             <span className="text-[11px] font-extrabold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full">
-              {mode === 'admin' ? '🗓️ Admin Master Time-Table Builder' : '🗓️ Interactive Class Schedule (Click Period to Mark Attendance)'}
+              {mode === 'admin' ? '🗓️ Admin Master Time-Table Builder' : '🗓️ Interactive Class Schedule'}
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-white mt-2">
               Master Class & Period Time-Table
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {mode === 'admin'
-                ? 'Click on any Period cell below to assign a Teacher ID (e.g. T1, TCH-101) and Subject (e.g. Maths, Eng, Sci).'
-                : `Logged in as ${profile?.member_name} (${profile?.member_code}). Click on any of your highlighted periods below to open that class's student attendance list!`}
+                ? 'Click on any Period cell below to assign a Teacher ID and Subject.'
+                : `Logged in as ${profile?.member_name}. Click on any highlighted period below to mark attendance!`}
             </p>
           </div>
         </div>
 
-        {/* DARK THEME TIME-TABLE TABLE LIKE SCREENSHOT */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
@@ -623,7 +620,6 @@ export default function Dashboard() {
                 const classStudentCount = students.filter(s => s.class_name === clsName).length;
                 return (
                   <tr key={clsName} className="border-b border-slate-800/90 hover:bg-white/[0.02] transition">
-                    {/* Class / Section Column */}
                     <td className="py-5 px-4 font-bold text-white">
                       <div>{clsName}</div>
                       <div className="text-[11px] text-slate-400 font-normal mt-0.5">
@@ -631,9 +627,7 @@ export default function Dashboard() {
                       </div>
                     </td>
 
-                    {/* Period Columns */}
                     {PERIOD_COLUMNS.map(col => {
-                      // 11:15 - 11:45 LUNCH BREAK COLUMN (Spells L - U - N - C - H - BREAK)
                       if (col.isLunch) {
                         const lunchText = LUNCH_LETTERS[rowIdx] || 'BREAK';
                         return (
@@ -643,7 +637,6 @@ export default function Dashboard() {
                         );
                       }
 
-                      // Find if a Teacher + Subject is assigned to this Class & Period
                       const slot = schedules.find(
                         s => s.class_name === clsName && s.lecture_time === col.key
                       );
@@ -657,7 +650,6 @@ export default function Dashboard() {
                         activeClickedPeriod?.className === clsName &&
                         activeClickedPeriod?.periodKey === col.key;
 
-                      // ADMIN MODE: Click any cell to assign/edit Teacher & Subject
                       if (mode === 'admin') {
                         return (
                           <td key={col.key} className="py-4 px-4">
@@ -680,7 +672,6 @@ export default function Dashboard() {
                         );
                       }
 
-                      // TEACHER MODE: Clickable Period Cell to Open Attendance List!
                       return (
                         <td key={col.key} className="py-4 px-4">
                           {slot ? (
@@ -739,7 +730,6 @@ export default function Dashboard() {
           </table>
         </div>
 
-        {/* ADMIN MODAL TO EDIT CLICKED CELL */}
         {mode === 'admin' && editingCell && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
             <div className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-indigo-600">
@@ -758,7 +748,7 @@ export default function Dashboard() {
               <form onSubmit={handleSaveTimeTableCell} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                    Select or Type Teacher ID (e.g. T1, T2, TCH-101) *
+                    Select or Type Teacher ID (e.g. T1, T2) *
                   </label>
                   {teachers.length > 0 && (
                     <select
@@ -777,7 +767,7 @@ export default function Dashboard() {
                   <input
                     type="text"
                     required
-                    placeholder="Or type Teacher Code (e.g. T1, T2, TCH-101)"
+                    placeholder="Or type Teacher Code (e.g. T1, T2)"
                     value={cellTeacherId}
                     onChange={(e) => setCellTeacherId(e.target.value)}
                     className="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold"
@@ -786,7 +776,7 @@ export default function Dashboard() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                    Subject Name (e.g. Maths, Eng, Sci, DSA) *
+                    Subject Name (e.g. Maths, Eng, Sci) *
                   </label>
                   <input
                     type="text"
@@ -831,7 +821,7 @@ export default function Dashboard() {
   };
 
   // ============================================================================
-  // 🖨️ REUSABLE 6-SUBJECT MARKSHEET MANAGER COMPONENT
+  // REUSABLE 6-SUBJECT MARKSHEET MANAGER COMPONENT
   // ============================================================================
   const renderResultMarksheetManager = () => {
     const classStudentsForResult = selectedResultClass
@@ -1288,7 +1278,7 @@ export default function Dashboard() {
           })()}
 
           {/* ========================================================= */}
-          {/* 2. TEACHER DASHBOARD (CLICKABLE TIME-TABLE -> ATTENDANCE) */}
+          {/* 2. TEACHER DASHBOARD                                      */}
           {/* ========================================================= */}
           {profile?.role === 'teacher' && (() => {
             const showTeacherProfile = activeNavTab === 'overview' || activeNavTab === 'profile';
@@ -1296,7 +1286,6 @@ export default function Dashboard() {
             const showTeacherResults = activeNavTab === 'results';
             const showTeacherNotices = activeNavTab === 'overview' || activeNavTab === 'notices';
 
-            // Students of the Class that Teacher clicked in the Time-Table Grid!
             const clickedClassStudents = activeClickedPeriod
               ? students.filter(s => s.class_name?.trim().toLowerCase() === activeClickedPeriod.className.trim().toLowerCase())
               : [];
@@ -1321,10 +1310,8 @@ export default function Dashboard() {
 
                 {showTeacherResults && renderResultMarksheetManager()}
 
-                {/* A. CLICKABLE MASTER TIME-TABLE GRID FOR TEACHER */}
                 {showTeacherAttendance && renderMasterTimeTableGrid('teacher')}
 
-                {/* B. WHEN TEACHER CLICKS A PERIOD CELL -> OPEN THAT CLASS'S STUDENT ATTENDANCE LIST */}
                 {showTeacherAttendance && activeClickedPeriod && (
                   <div id="live-attendance-sheet" className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border-2 border-emerald-600 space-y-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 gap-4">
@@ -1439,7 +1426,6 @@ export default function Dashboard() {
                           </table>
                         </div>
 
-                        {/* SINGLE SAVE BUTTON AT THE BOTTOM */}
                         <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-emerald-50/70 p-4 rounded-2xl">
                           <p className="text-xs text-emerald-950 font-bold">
                             ✅ Done marking attendance for all {clickedClassStudents.length} students in {activeClickedPeriod.className}?
@@ -1488,7 +1474,7 @@ export default function Dashboard() {
             return (
               <div className="space-y-8">
                 
-                {/* A. ADMIN MASTER TIME-TABLE BUILDER (EXACTLY LIKE SCREENSHOT) */}
+                {/* A. ADMIN MASTER TIME-TABLE BUILDER */}
                 {showTeachers && renderMasterTimeTableGrid('admin')}
 
                 {/* B. MANAGE TEACHERS */}
@@ -1574,14 +1560,23 @@ export default function Dashboard() {
                               <div
                                 key={idx}
                                 onClick={() => setSelectedAdminClass(clsName)}
-                                className="cursor-pointer group p-5 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-gradient-to-br from-white to-slate-50 hover:to-blue-50/40 shadow-2xs hover:shadow-md transition flex flex-col justify-between"
+                                className="cursor-pointer group relative p-5 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-gradient-to-br from-white to-slate-50 hover:to-blue-50/40 shadow-2xs hover:shadow-md transition flex flex-col justify-between"
                               >
+                                {/* DELETE BUTTON */}
+                                <button
+                                  onClick={(e) => handleDeleteClass(e, clsName)}
+                                  className="absolute top-3 right-3 text-red-600 bg-red-100 hover:bg-red-200 px-2 py-0.5 rounded-lg transition text-lg font-black"
+                                  title="Delete Class"
+                                >
+                                  ✖
+                                </button>
+
                                 <div>
                                   <div className="flex justify-between items-start gap-2">
                                     <span className="w-10 h-10 rounded-xl bg-blue-100 text-blue-900 font-black flex items-center justify-center text-sm">
                                       📚
                                     </span>
-                                    <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-blue-900 text-white">
+                                    <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-blue-900 text-white mt-1 mr-6">
                                       {count} Students
                                     </span>
                                   </div>
