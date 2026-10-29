@@ -189,15 +189,15 @@ export default function Login() {
         
         {/* Brand Header */}
         <div className="text-center mb-5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-black text-2xl flex items-center justify-center shadow-md mx-auto mb-3">
-            D
-          </div>
+          <div className="w-12 h-12 mx-auto rounded-xl bg-indigo-900 text-white font-black text-xl flex items-center justify-center">
+  S
+</div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
             {isSignUp ? 'Create Your Account' : 'Welcome Back'}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Digi School Hub — Official Institutional ERP Portal
-          </p>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+  SchoolWeave Live — Official Institutional ERP Portal
+</p>
         </div>
 
         {/* MAIN SWITCH: SIGN IN vs SIGN UP */}
