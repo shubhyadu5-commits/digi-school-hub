@@ -255,16 +255,13 @@ export default function Navbar() {
             </nav>
           )}
 
-          {!isDashboard && (
+        {!isDashboard && (
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 border-l border-slate-200 pl-6">
               <Link to="/" className={`hover:text-indigo-600 transition ${location.pathname === '/' ? 'text-indigo-600 font-bold' : ''}`}>
                 Overview
               </Link>
               <Link to="/onboarding" className={`hover:text-indigo-600 transition ${location.pathname === '/onboarding' ? 'text-indigo-600 font-bold' : ''}`}>
                 Find Schools & Colleges
-              </Link>
-              <Link to="/dashboard" className={`hover:text-indigo-600 transition ${location.pathname === '/dashboard' ? 'text-indigo-600 font-bold' : ''}`}>
-                ERP Portal
               </Link>
               {userEmail === 'shubhyadu5@gmail.com' && (
                 <Link to="/super-admin" className={`hover:text-amber-600 transition flex items-center gap-1 ${location.pathname === '/super-admin' ? 'text-amber-600 font-bold' : ''}`}>

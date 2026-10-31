@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
@@ -29,7 +29,6 @@ interface ScheduleSlot {
   subject_name: string;
 }
 
-// Master Time-Table Periods
 const PERIOD_COLUMNS = [
   { key: 'Period 1 (09:00 - 09:45)', label: 'Period 1 (09:00 - 09:45)' },
   { key: 'Period 2 (09:45 - 10:30)', label: 'Period 2 (09:45 - 10:30)' },
@@ -63,39 +62,31 @@ export default function Dashboard() {
   const [adminCode, setAdminCode] = useState<string>('');
   const [adminUsername, setAdminUsername] = useState<string>('');
   const [adminPassword, setAdminPassword] = useState<string>('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bgFile, setBgFile] = useState<File | null>(null);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string>('');
+  const [currentBgUrl, setCurrentBgUrl] = useState<string>('');
   const [savingCreds, setSavingCreds] = useState(false);
   const [coAdmins, setCoAdmins] = useState<string[]>([]);
   const [newModEmail, setNewModEmail] = useState('');
 
-  // DYNAMIC CLASSES STATE (Using campus_classes)
   const [classList, setClassList] = useState<any[]>([]);
   const [newClassName, setNewClassName] = useState('');
   const [selectedAdminClass, setSelectedAdminClass] = useState<string | null>(null);
-
-  // Result Marksheet States
   const [selectedResultClass, setSelectedResultClass] = useState<string | null>(null);
   const [selectedResultStudent, setSelectedResultStudent] = useState<any | null>(null);
   const [marksheetRows, setMarksheetRows] = useState<SubjectRow[]>(createEmptySixSubjects());
   const [studentRankInput, setStudentRankInput] = useState<string>('1st');
   const [savingMarksheet, setSavingMarksheet] = useState(false);
 
-  // Master Time-Table States
   const [schedules, setSchedules] = useState<ScheduleSlot[]>([]);
   const [editingCell, setEditingCell] = useState<{ className: string; periodKey: string } | null>(null);
   const [cellTeacherId, setCellTeacherId] = useState<string>('');
   const [cellSubject, setCellSubject] = useState<string>('');
-
-  // Teacher's Clicked Period Cell
-  const [activeClickedPeriod, setActiveClickedPeriod] = useState<{
-    className: string;
-    periodKey: string;
-    subjectName: string;
-    teacherId: string;
-  } | null>(null);
+  const [activeClickedPeriod, setActiveClickedPeriod] = useState<{ className: string; periodKey: string; subjectName: string; teacherId: string; } | null>(null);
 
   const [teachers, setTeachers] = useState<any[]>([]);
   const [tName, setTName] = useState('');
-  const [tUniqueId, setTUniqueId] = useState('');
   const [tPassword, setTPassword] = useState('');
   const [tClass, setTClass] = useState('');
 
@@ -114,38 +105,45 @@ export default function Dashboard() {
   const [newPost, setNewPost] = useState('');
   const [myStudentData, setMyStudentData] = useState<any>(null);
 
+  // 🌟 NAYA STATE: Teacher kis class aur period ka filter dekh raha hai history mein
+  const [historyFilterClass, setHistoryFilterClass] = useState<string>('');
+  const [historyFilterLecture, setHistoryFilterLecture] = useState<string>('');
+
+  const generateTeacherId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let id = 'T';
+    for (let i = 0; i < 5; i++) {
+      id += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return id;
+  };
+
+  const generateStudentId = (classNum: string | number, rollNum: number) => {
+    const classPart = String(classNum).replace(/\D/g, '').padStart(2, '0');
+    const rollPart = String(rollNum).padStart(3, '0');
+    return `S${classPart}${rollPart}`;
+  };
+
   useEffect(() => {
     const loadDashboard = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return navigate('/login');
 
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       const savedSession = localStorage.getItem('campus_active_session');
       const activeSession = savedSession ? JSON.parse(savedSession) : null;
-
       if (!prof && !activeSession) return navigate('/onboarding');
 
       const finalProfile: Profile = {
-        id: user.id,
-        email: user.email || '',
-        institute_id: activeSession?.institute_id || prof?.institute_id,
-        institute_name: activeSession?.institute_name || prof?.institute_name,
-        role: activeSession?.role || prof?.role || 'student',
-        member_name: activeSession?.member_name || prof?.member_name,
-        class_name: activeSession?.class_name || prof?.class_name,
-        member_code: activeSession?.member_code || prof?.member_code
+        id: user.id, email: user.email || '', institute_id: activeSession?.institute_id || prof?.institute_id,
+        institute_name: activeSession?.institute_name || prof?.institute_name, role: activeSession?.role || prof?.role || 'student',
+        member_name: activeSession?.member_name || prof?.member_name, class_name: activeSession?.class_name || prof?.class_name, member_code: activeSession?.member_code || prof?.member_code
       };
-
       setProfile(finalProfile);
 
       const { data: instData } = await supabase
         .from('institutes')
-        .select('admin_code, admin_username, admin_password, co_admins')
+        .select('admin_code, admin_username, admin_password, co_admins, image_url, background_url')
         .eq('id', finalProfile.institute_id)
         .single();
 
@@ -154,13 +152,12 @@ export default function Dashboard() {
         setAdminUsername(instData.admin_username || '');
         setAdminPassword(instData.admin_password || '');
         setCoAdmins(instData.co_admins || []);
+        setCurrentLogoUrl(instData.image_url || '');
+        setCurrentBgUrl(instData.background_url || '');
       }
 
       const { data: pData } = await supabase.from('posts').select('*').eq('institute_id', finalProfile.institute_id).order('created_at', { ascending: false });
-      
-      // FETCH CAMPUS CLASSES FROM DATABASE
       const { data: cData } = await supabase.from('campus_classes').select('*').eq('institute_id', finalProfile.institute_id).order('class_name');
-      
       const { data: tData } = await supabase.from('campus_teachers').select('*').eq('institute_id', finalProfile.institute_id);
       const { data: sData } = await supabase.from('campus_students').select('*').eq('institute_id', finalProfile.institute_id).order('roll_number', { ascending: true });
       const { data: aData } = await supabase.from('campus_attendance').select('*').eq('institute_id', finalProfile.institute_id).order('attendance_date', { ascending: false });
@@ -175,11 +172,10 @@ export default function Dashboard() {
       if (sData) {
         setStudents(sData);
         if (finalProfile.role === 'student') {
-          const found = sData.find((s: any) => s.roll_number === finalProfile.member_code || s.name.toLowerCase() === finalProfile.member_name?.toLowerCase());
+          const found = sData.find((s: any) => s.unique_id === finalProfile.member_code || s.name.toLowerCase() === finalProfile.member_name?.toLowerCase());
           setMyStudentData(found || null);
         }
       }
-
       setLoading(false);
     };
 
@@ -188,9 +184,74 @@ export default function Dashboard() {
 
   const allClassOptions = classList.map(c => c.class_name);
 
-  // ============================================================================
-  // ADMIN & TEACHER FUNCTIONS
-  // ============================================================================
+  // 🌟 NAYA LOGIC: Matrix Data Prepare Karna
+  const teacherLogs = useMemo(() => {
+    return attendanceRecords.filter(r => r.marked_by.includes(profile?.member_code || ''));
+  }, [attendanceRecords, profile]);
+
+  const historyClassOptions = useMemo(() => Array.from(new Set(teacherLogs.map(r => r.class_name))), [teacherLogs]);
+  const historyLectureOptions = useMemo(() => Array.from(new Set(teacherLogs.filter(r => r.class_name === historyFilterClass).map(r => r.lecture_name))), [teacherLogs, historyFilterClass]);
+
+  useEffect(() => {
+    if (historyClassOptions.length > 0 && !historyFilterClass) {
+      setHistoryFilterClass(historyClassOptions[0]);
+    }
+  }, [historyClassOptions, historyFilterClass]);
+
+  useEffect(() => {
+    if (historyLectureOptions.length > 0 && (!historyFilterLecture || !historyLectureOptions.includes(historyFilterLecture))) {
+      setHistoryFilterLecture(historyLectureOptions[0]);
+    }
+  }, [historyLectureOptions, historyFilterLecture]);
+
+  const { uniqueDates, matrixData } = useMemo(() => {
+    if (!historyFilterClass || !historyFilterLecture) return { uniqueDates: [], matrixData: [] };
+    
+    const filteredLogs = teacherLogs.filter(r => r.class_name === historyFilterClass && r.lecture_name === historyFilterLecture);
+    const dates = Array.from(new Set(filteredLogs.map(r => r.attendance_date))).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()); // Latest date first
+    
+    const studentMap = new Map();
+    filteredLogs.forEach(log => {
+      if (!studentMap.has(log.unique_id)) {
+        studentMap.set(log.unique_id, { id: log.unique_id, name: log.student_name, attendance: {} });
+      }
+      studentMap.get(log.unique_id).attendance[log.attendance_date] = log.status;
+    });
+
+    const matrix = Array.from(studentMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return { uniqueDates: dates, matrixData: matrix };
+  }, [teacherLogs, historyFilterClass, historyFilterLecture]);
+
+  // 🌟 NAYA FUNCTION: MATRIX EXCEL EXPORT
+  const handleExportToExcelMatrix = () => {
+    if (matrixData.length === 0 || uniqueDates.length === 0) { 
+      alert('No attendance records found to export for the selected filter!'); 
+      return; 
+    }
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    // Header Row
+    csvContent += `Class: ${historyFilterClass} - ${historyFilterLecture}\n\n`;
+    csvContent += "Student ID,Student Name," + uniqueDates.join(",") + "\n";
+    
+    // Data Rows
+    matrixData.forEach(student => {
+      let row = `${student.id},${student.name},`;
+      const attendanceStatuses = uniqueDates.map(date => student.attendance[date] || '-');
+      row += attendanceStatuses.join(",");
+      csvContent += row + "\n";
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${historyFilterClass}_${historyFilterLecture}_Attendance.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
   const handleAdminClickCell = (className: string, periodKey: string, existingSlot?: ScheduleSlot) => {
     setEditingCell({ className, periodKey });
     setCellTeacherId(existingSlot?.teacher_unique_id || (teachers[0]?.unique_id ?? 'T1'));
@@ -200,158 +261,87 @@ export default function Dashboard() {
   const handleSaveTimeTableCell = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile || !editingCell) return;
+    const matchedTeacher = teachers.find(t => t.unique_id.toLowerCase() === cellTeacherId.trim().toLowerCase());
 
-    const matchedTeacher = teachers.find(
-      t => t.unique_id.toLowerCase() === cellTeacherId.trim().toLowerCase()
-    );
-
-    await supabase
-      .from('campus_schedules')
-      .delete()
-      .eq('institute_id', profile.institute_id)
-      .eq('class_name', editingCell.className)
-      .eq('lecture_time', editingCell.periodKey);
-
+    await supabase.from('campus_schedules').delete().eq('institute_id', profile.institute_id).eq('class_name', editingCell.className).eq('lecture_time', editingCell.periodKey);
     const payload = {
-      institute_id: profile.institute_id,
-      teacher_unique_id: cellTeacherId.trim(),
-      teacher_name: matchedTeacher ? matchedTeacher.name : cellTeacherId.trim(),
-      class_name: editingCell.className,
-      lecture_time: editingCell.periodKey,
-      subject_name: cellSubject.trim() || 'Lecture'
+      institute_id: profile.institute_id, teacher_unique_id: cellTeacherId.trim(), teacher_name: matchedTeacher ? matchedTeacher.name : cellTeacherId.trim(),
+      class_name: editingCell.className, lecture_time: editingCell.periodKey, subject_name: cellSubject.trim() || 'Lecture'
     };
 
     const { data, error } = await supabase.from('campus_schedules').insert([payload]).select();
-
-    if (error) {
-      alert('Error saving slot: ' + error.message);
-    } else if (data) {
-      const remaining = schedules.filter(
-        s => !(s.class_name === editingCell.className && s.lecture_time === editingCell.periodKey)
-      );
-      setSchedules([...remaining, data[0]]);
-      setEditingCell(null);
+    if (error) { alert('Error saving slot: ' + error.message); } 
+    else if (data) {
+      const remaining = schedules.filter(s => !(s.class_name === editingCell.className && s.lecture_time === editingCell.periodKey));
+      setSchedules([...remaining, data[0]]); setEditingCell(null);
     }
   };
 
   const handleClearTimeTableCell = async () => {
     if (!profile || !editingCell) return;
-    await supabase
-      .from('campus_schedules')
-      .delete()
-      .eq('institute_id', profile.institute_id)
-      .eq('class_name', editingCell.className)
-      .eq('lecture_time', editingCell.periodKey);
-
-    setSchedules(schedules.filter(
-      s => !(s.class_name === editingCell.className && s.lecture_time === editingCell.periodKey)
-    ));
+    await supabase.from('campus_schedules').delete().eq('institute_id', profile.institute_id).eq('class_name', editingCell.className).eq('lecture_time', editingCell.periodKey);
+    setSchedules(schedules.filter(s => !(s.class_name === editingCell.className && s.lecture_time === editingCell.periodKey)));
     setEditingCell(null);
   };
 
   const handleSelectAttendanceLocal = (stu: any, status: 'P' | 'A') => {
     if (!profile || !activeClickedPeriod) return;
     const newRecord = {
-      id: Date.now() + stu.id,
-      institute_id: profile.institute_id,
-      class_name: activeClickedPeriod.className,
-      student_id: stu.id,
-      roll_number: stu.roll_number,
-      student_name: stu.name,
-      attendance_date: selectedDate,
-      lecture_name: activeLectureLabel,
-      status: status,
-      marked_by: `${profile.member_name || 'Teacher'} (${profile.member_code || ''})`
+      id: Date.now() + stu.id, institute_id: profile.institute_id, class_name: activeClickedPeriod.className, student_id: stu.id, roll_number: stu.roll_number,
+      unique_id: stu.unique_id, student_name: stu.name, attendance_date: selectedDate, lecture_name: activeLectureLabel, status: status, marked_by: `${profile.member_name || 'Teacher'} (${profile.member_code || ''})`
     };
-
-    const filtered = attendanceRecords.filter(
-      r => !(r.student_id === stu.id && r.attendance_date === selectedDate && r.lecture_name === activeLectureLabel)
-    );
+    const filtered = attendanceRecords.filter(r => !(r.student_id === stu.id && r.attendance_date === selectedDate && r.lecture_name === activeLectureLabel));
     setAttendanceRecords([newRecord, ...filtered]);
   };
 
   const handleSelectAllPresentLocal = (classStudents: any[]) => {
     if (!profile || !activeClickedPeriod || classStudents.length === 0) return;
     const newRecords = classStudents.map((stu, idx) => ({
-      id: Date.now() + idx,
-      institute_id: profile.institute_id,
-      class_name: activeClickedPeriod.className,
-      student_id: stu.id,
-      roll_number: stu.roll_number,
-      student_name: stu.name,
-      attendance_date: selectedDate,
-      lecture_name: activeLectureLabel,
-      status: 'P',
-      marked_by: `${profile.member_name || 'Teacher'} (${profile.member_code || ''})`
+      id: Date.now() + idx, institute_id: profile.institute_id, class_name: activeClickedPeriod.className, student_id: stu.id, roll_number: stu.roll_number,
+      unique_id: stu.unique_id, student_name: stu.name, attendance_date: selectedDate, lecture_name: activeLectureLabel, status: 'P', marked_by: `${profile.member_name || 'Teacher'} (${profile.member_code || ''})`
     }));
-
     const studentIds = classStudents.map(s => s.id);
-    const remaining = attendanceRecords.filter(
-      r => !(studentIds.includes(r.student_id) && r.attendance_date === selectedDate && r.lecture_name === activeLectureLabel)
-    );
+    const remaining = attendanceRecords.filter(r => !(studentIds.includes(r.student_id) && r.attendance_date === selectedDate && r.lecture_name === activeLectureLabel));
     setAttendanceRecords([...newRecords, ...remaining]);
   };
 
   const handleSaveEntireClassSheet = async (classStudents: any[]) => {
     if (!profile || !activeClickedPeriod || classStudents.length === 0) return;
     setSavingAll(true);
-
+    
     const attendancePayloads: any[] = [];
     classStudents.forEach(stu => {
-      const rec = attendanceRecords.find(
-        r => r.student_id === stu.id && r.attendance_date === selectedDate && r.lecture_name === activeLectureLabel
-      );
+      const rec = attendanceRecords.find(r => r.student_id === stu.id && r.attendance_date === selectedDate && r.lecture_name === activeLectureLabel);
       if (rec) {
         attendancePayloads.push({
-          institute_id: profile.institute_id,
-          class_name: activeClickedPeriod.className,
-          student_id: stu.id,
-          roll_number: stu.roll_number,
-          student_name: stu.name,
-          attendance_date: selectedDate,
-          lecture_name: activeLectureLabel,
-          status: rec.status,
-          marked_by: `${profile.member_name || 'Teacher'} (${profile.member_code || ''})`
+          institute_id: profile.institute_id, class_name: activeClickedPeriod.className, student_id: stu.id, roll_number: stu.roll_number,
+          unique_id: stu.unique_id, student_name: stu.name, attendance_date: selectedDate, lecture_name: activeLectureLabel, status: rec.status, marked_by: `${profile.member_name || 'Teacher'} (${profile.member_code || ''})`
         });
       }
     });
 
-    if (attendancePayloads.length === 0) {
-      alert('Please mark P or A for at least one student before saving!');
-      setSavingAll(false);
-      return;
-    }
+    if (attendancePayloads.length === 0) { alert('Please mark P or A for at least one student before saving!'); setSavingAll(false); return; }
 
-    const { error: attErr } = await supabase
-      .from('campus_attendance')
-      .upsert(attendancePayloads as any[], { onConflict: 'student_id,attendance_date,lecture_name' });
+    await supabase.from('campus_attendance').delete()
+      .eq('institute_id', profile.institute_id)
+      .eq('class_name', activeClickedPeriod.className)
+      .eq('attendance_date', selectedDate)
+      .eq('lecture_name', activeLectureLabel);
 
+    const { error: attErr } = await supabase.from('campus_attendance').insert(attendancePayloads);
+    
     setSavingAll(false);
-
-    if (attErr) {
-      alert('Error saving attendance: ' + attErr.message);
-    } else {
-      alert(`✅ Attendance Saved Successfully!\nClass: ${activeClickedPeriod.className}\nPeriod: ${activeLectureLabel}\nDate: ${selectedDate}`);
-    }
+    if (attErr) alert('Error saving attendance: ' + attErr.message);
+    else alert(`✅ Attendance Saved Successfully!\nClass: ${activeClickedPeriod.className}\nPeriod: ${activeLectureLabel}\nDate: ${selectedDate}`);
   };
 
-  const activeLectureLabel = activeClickedPeriod
-    ? `${activeClickedPeriod.periodKey} - ${activeClickedPeriod.subjectName}`
-    : 'General Lecture';
+  const activeLectureLabel = activeClickedPeriod ? `${activeClickedPeriod.periodKey} - ${activeClickedPeriod.subjectName}` : 'General Lecture';
 
   const handleOpenStudentMarksheet = (stu: any) => {
-    setSelectedResultStudent(stu);
-    setStudentRankInput(stu.position || '1st');
-
+    setSelectedResultStudent(stu); setStudentRankInput(stu.position || '1st');
     if (Array.isArray(stu.subject_marks) && stu.subject_marks.length > 0) {
-      const existing = stu.subject_marks.map((r: any) => ({
-        subject: r.subject || '',
-        marks: r.marks !== undefined ? String(r.marks) : '',
-        maxMarks: r.maxMarks !== undefined ? String(r.maxMarks) : '100'
-      }));
-      while (existing.length < 6) {
-        existing.push({ subject: '', marks: '', maxMarks: '100' });
-      }
+      const existing = stu.subject_marks.map((r: any) => ({ subject: r.subject || '', marks: r.marks !== undefined ? String(r.marks) : '', maxMarks: r.maxMarks !== undefined ? String(r.maxMarks) : '100' }));
+      while (existing.length < 6) { existing.push({ subject: '', marks: '', maxMarks: '100' }); }
       setMarksheetRows(existing.slice(0, 6));
     } else {
       setMarksheetRows(createEmptySixSubjects());
@@ -359,81 +349,106 @@ export default function Dashboard() {
   };
 
   const handleMarksheetRowChange = (index: number, field: keyof SubjectRow, value: string) => {
-    const updated = [...marksheetRows];
-    updated[index] = { ...updated[index], [field]: value };
-    setMarksheetRows(updated);
+    const updated = [...marksheetRows]; updated[index] = { ...updated[index], [field]: value }; setMarksheetRows(updated);
   };
 
   const calculateMarksheetTotals = (rows: SubjectRow[]) => {
-    let obtainedTotal = 0;
-    let maxTotal = 0;
-    let filledCount = 0;
-    rows.forEach(r => {
-      if (r.subject.trim() !== '' || r.marks.trim() !== '') {
-        filledCount++;
-        obtainedTotal += Number(r.marks) || 0;
-        maxTotal += Number(r.maxMarks) || 100;
-      }
-    });
+    let obtainedTotal = 0, maxTotal = 0, filledCount = 0;
+    rows.forEach(r => { if (r.subject.trim() !== '' || r.marks.trim() !== '') { filledCount++; obtainedTotal += Number(r.marks) || 0; maxTotal += Number(r.maxMarks) || 100; } });
     const percentage = maxTotal > 0 ? Number(((obtainedTotal / maxTotal) * 100).toFixed(2)) : 0;
     return { obtainedTotal, maxTotal, percentage, filledCount };
   };
 
   const handleSaveStudentMarksheet = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedResultStudent) return;
+    e.preventDefault(); if (!selectedResultStudent) return;
     setSavingMarksheet(true);
-
     const { obtainedTotal, maxTotal, percentage } = calculateMarksheetTotals(marksheetRows);
     const passStatus = percentage >= 33 ? 'PASS' : 'FAIL';
     const summaryText = `${passStatus} — ${obtainedTotal}/${maxTotal} (${percentage}%)`;
 
-    const { error } = await supabase
-      .from('campus_students')
-      .update({
-        subject_marks: marksheetRows,
-        result_status: summaryText,
-        position: studentRankInput || '1st'
-      })
-      .eq('id', selectedResultStudent.id);
-
+    const { error } = await supabase.from('campus_students').update({ subject_marks: marksheetRows, result_status: summaryText, position: studentRankInput || '1st' }).eq('id', selectedResultStudent.id);
     setSavingMarksheet(false);
-
-    if (error) {
-      alert('Error saving marksheet: ' + error.message);
-    } else {
-      const updatedStu = {
-        ...selectedResultStudent,
-        subject_marks: marksheetRows,
-        result_status: summaryText,
-        position: studentRankInput || '1st'
-      };
+    if (error) alert('Error saving marksheet: ' + error.message);
+    else {
+      const updatedStu = { ...selectedResultStudent, subject_marks: marksheetRows, result_status: summaryText, position: studentRankInput || '1st' };
       setStudents(students.map(s => s.id === selectedResultStudent.id ? updatedStu : s));
       setSelectedResultStudent(updatedStu);
       alert(`✅ Marksheet Saved for ${selectedResultStudent.name}!\nTotal: ${obtainedTotal}/${maxTotal} (${percentage}%)`);
     }
   };
 
-  const handleSaveAdminCredentials = async (e: React.FormEvent) => {
+  const uploadImageToSupabase = async (file: File, folderName: string): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile?.institute_id}_${Date.now()}.${fileExt}`;
+      const filePath = `${folderName}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('campus_images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        alert(`Upload Error: ${uploadError.message}`);
+        return null;
+      }
+
+      const { data } = supabase.storage
+        .from('campus_images')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  };
+
+  const handleSaveAdminCredentialsAndImages = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile || !adminUsername.trim() || !adminPassword.trim()) return;
+    if (!profile) return;
     setSavingCreds(true);
+
+    let finalLogoUrl = currentLogoUrl;
+    let finalBgUrl = currentBgUrl;
+
+    if (logoFile) {
+      const uploadedUrl = await uploadImageToSupabase(logoFile, 'logos');
+      if (uploadedUrl) finalLogoUrl = uploadedUrl;
+    }
+
+    if (bgFile) {
+      const uploadedUrl = await uploadImageToSupabase(bgFile, 'backgrounds');
+      if (uploadedUrl) finalBgUrl = uploadedUrl;
+    }
+
     const { error } = await supabase
       .from('institutes')
-      .update({ admin_username: adminUsername.trim(), admin_password: adminPassword })
+      .update({ 
+        admin_username: adminUsername.trim(), 
+        admin_password: adminPassword,
+        image_url: finalLogoUrl,
+        background_url: finalBgUrl
+      })
       .eq('id', profile.institute_id);
+
     setSavingCreds(false);
-    if (!error) alert('✅ Admin Username & Password saved!');
+
+    if (!error) {
+      setCurrentLogoUrl(finalLogoUrl);
+      setCurrentBgUrl(finalBgUrl);
+      setLogoFile(null);
+      setBgFile(null);
+      alert('✅ Campus Profile & Images updated successfully!');
+    } else {
+      alert('Error saving details: ' + error.message);
+    }
   };
 
   const handleAddModerator = async () => {
     if (!newModEmail.trim() || !profile) return;
     const updatedMods = [...coAdmins, newModEmail.trim()];
     const { error } = await supabase.from('institutes').update({ co_admins: updatedMods }).eq('id', profile.institute_id);
-    if (!error) {
-      setCoAdmins(updatedMods);
-      setNewModEmail('');
-    }
+    if (!error) { setCoAdmins(updatedMods); setNewModEmail(''); }
   };
 
   const handleRemoveModerator = async (emailToRemove: string) => {
@@ -445,56 +460,26 @@ export default function Dashboard() {
 
   const handleAddClass = async () => {
     if (!newClassName.trim() || !profile) return;
-    const { data, error } = await supabase
-      .from('campus_classes')
-      .insert([{ institute_id: profile.institute_id, class_name: newClassName.trim() }])
-      .select();
-    if (!error && data) {
-      setClassList([...classList, data[0]]);
-      setNewClassName('');
-    } else {
-      alert('Error adding class: ' + error?.message);
-    }
+    const { data, error } = await supabase.from('campus_classes').insert([{ institute_id: profile.institute_id, class_name: newClassName.trim() }]).select();
+    if (!error && data) { setClassList([...classList, data[0]]); setNewClassName(''); } 
+    else alert('Error adding class: ' + error?.message);
   };
 
   const handleDeleteClass = async (e: React.MouseEvent, className: string) => {
     e.stopPropagation();
     const confirmDelete = window.confirm(`Kya aap sach mein "${className}" ko delete karna chahte hain?`);
     if (!confirmDelete || !profile) return;
-
-    const { error } = await supabase
-      .from('campus_classes')
-      .delete()
-      .eq('institute_id', profile.institute_id)
-      .eq('class_name', className);
-    
-    if (error) {
-      alert('Error deleting class: ' + error.message);
-    } else {
-      setClassList(classList.filter(c => c.class_name !== className));
-      if (selectedAdminClass === className) setSelectedAdminClass(null);
-      alert(`✅ ${className} deleted successfully!`);
-    }
+    const { error } = await supabase.from('campus_classes').delete().eq('institute_id', profile.institute_id).eq('class_name', className);
+    if (error) alert('Error deleting class: ' + error.message);
+    else { setClassList(classList.filter(c => c.class_name !== className)); if (selectedAdminClass === className) setSelectedAdminClass(null); alert(`✅ ${className} deleted successfully!`); }
   };
 
   const handleAddTeacher = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile || !tClass) return;
-    const { data, error } = await supabase
-      .from('campus_teachers')
-      .insert([{
-        institute_id: profile.institute_id,
-        name: tName.trim(),
-        unique_id: tUniqueId.trim(),
-        password: tPassword.trim(),
-        assigned_class: tClass
-      }])
-      .select();
-    if (!error && data) {
-      setTeachers([...teachers, data[0]]);
-      setTName(''); setTUniqueId(''); setTPassword(''); setTClass('');
-      alert(`✅ Teacher added! Login ID: ${data[0].unique_id}`);
-    }
+    e.preventDefault(); if (!profile || !tClass) return;
+    const newTeacherId = generateTeacherId();
+    const { data, error } = await supabase.from('campus_teachers').insert([{ institute_id: profile.institute_id, name: tName.trim(), unique_id: newTeacherId, password: tPassword.trim(), assigned_class: tClass }]).select();
+    if (!error && data) { setTeachers([...teachers, data[0]]); setTName(''); setTPassword(''); setTClass(''); alert(`✅ Teacher added! Login ID: ${data[0].unique_id}`); } 
+    else alert('Error adding teacher: ' + error?.message);
   };
 
   const handleEditTeacherPassword = async (id: number, currentPass: string) => {
@@ -505,45 +490,22 @@ export default function Dashboard() {
   };
 
   const handleDeleteTeacher = async (id: number) => {
-    await supabase.from('campus_teachers').delete().eq('id', id);
-    setTeachers(teachers.filter(t => t.id !== id));
+    await supabase.from('campus_teachers').delete().eq('id', id); setTeachers(teachers.filter(t => t.id !== id));
   };
 
   const handleAddStudentToSelectedClass = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile || !selectedAdminClass) return;
-
-    const fullPayload = {
-      institute_id: profile.institute_id,
-      name: sName.trim(),
-      roll_number: sRoll.trim(),
-      class_name: selectedAdminClass,
-      section: sSection || 'A',
-      position: sPosition || '1st'
-    };
-
+    e.preventDefault(); if (!profile || !selectedAdminClass) return;
+    const newStudentId = generateStudentId(selectedAdminClass, parseInt(sRoll, 10) || 0);
+    const fullPayload = { institute_id: profile.institute_id, name: sName.trim(), roll_number: sRoll.trim(), unique_id: newStudentId, class_name: selectedAdminClass, section: sSection || 'A', position: sPosition || '1st' };
+    
     let { data, error } = await supabase.from('campus_students').insert([fullPayload]).select();
-
     if (error) {
-      const basicPayload = {
-        institute_id: profile.institute_id,
-        name: sName.trim(),
-        roll_number: sRoll.trim(),
-        class_name: selectedAdminClass
-      };
+      const basicPayload = { institute_id: profile.institute_id, name: sName.trim(), roll_number: sRoll.trim(), unique_id: newStudentId, class_name: selectedAdminClass };
       const res = await supabase.from('campus_students').insert([basicPayload]).select();
-      data = res.data;
-      error = res.error;
+      data = res.data; error = res.error;
     }
-
-    if (error) {
-      alert('Error adding student: ' + error.message);
-    } else if (data) {
-      setStudents([...students, data[0]]);
-      setSName('');
-      setSRoll('');
-      alert(`✅ Student "${data[0].name}" added to ${selectedAdminClass}!`);
-    }
+    if (error) alert('Error adding student: ' + error.message);
+    else if (data) { setStudents([...students, data[0]]); setSName(''); setSRoll(''); alert(`✅ Student "${data[0].name}" added to ${selectedAdminClass}! Login ID: ${data[0].unique_id}`); }
   };
 
   const handleEditRollNumber = async (id: number, currentRoll: string) => {
@@ -554,36 +516,16 @@ export default function Dashboard() {
   };
 
   const handleDeleteStudent = async (id: number) => {
-    await supabase.from('campus_students').delete().eq('id', id);
-    setStudents(students.filter(s => s.id !== id));
+    await supabase.from('campus_students').delete().eq('id', id); setStudents(students.filter(s => s.id !== id));
   };
 
   const handleCreatePost = async () => {
     if (!newPost.trim() || !profile) return;
-    const authorDisplay = profile.member_name 
-      ? `${profile.member_name} (${profile.member_code || profile.role})` 
-      : profile.email;
-
-    const { data } = await supabase
-      .from('posts')
-      .insert([{ 
-        content: newPost, 
-        author_email: authorDisplay, 
-        author_role: profile.role, 
-        institute_id: profile.institute_id 
-      }])
-      .select();
-
-    if (data) {
-      setPosts([data[0], ...posts]);
-      setNewPost('');
-      alert('📢 Announcement published successfully!');
-    }
+    const authorDisplay = profile.member_name ? `${profile.member_name} (${profile.member_code || profile.role})` : profile.email;
+    const { data } = await supabase.from('posts').insert([{ content: newPost, author_email: authorDisplay, author_role: profile.role, institute_id: profile.institute_id }]).select();
+    if (data) { setPosts([data[0], ...posts]); setNewPost(''); alert('📢 Announcement published successfully!'); }
   };
 
-  // ============================================================================
-  // MASTER TIME-TABLE GRID RENDERER
-  // ============================================================================
   const renderMasterTimeTableGrid = (mode: 'admin' | 'teacher') => {
     return (
       <div className="bg-[#0b0d13] text-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-800">
@@ -820,9 +762,6 @@ export default function Dashboard() {
     );
   };
 
-  // ============================================================================
-  // REUSABLE 6-SUBJECT MARKSHEET MANAGER COMPONENT
-  // ============================================================================
   const renderResultMarksheetManager = () => {
     const classStudentsForResult = selectedResultClass
       ? students.filter(s => s.class_name === selectedResultClass)
@@ -911,7 +850,7 @@ export default function Dashboard() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold text-xs bg-indigo-100 text-indigo-950 px-2.5 py-0.5 rounded-md">
-                            Roll: {stu.roll_number}
+                            ID: {stu.unique_id || stu.roll_number}
                           </span>
                           {hasResult ? (
                             <span className="text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
@@ -954,7 +893,7 @@ export default function Dashboard() {
                   📝 6-Subject Result Marksheet — <span className="text-indigo-700">{selectedResultStudent.name}</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Roll No: <strong className="font-mono text-slate-800">{selectedResultStudent.roll_number}</strong> &nbsp;|&nbsp; Class: <strong>{selectedResultStudent.class_name}</strong>
+                  ID: <strong className="font-mono text-slate-800">{selectedResultStudent.unique_id || selectedResultStudent.roll_number}</strong> &nbsp;|&nbsp; Class: <strong>{selectedResultStudent.class_name}</strong>
                 </p>
               </div>
 
@@ -1109,7 +1048,7 @@ export default function Dashboard() {
           {/* ========================================================= */}
           {profile?.role === 'student' && (() => {
             const myLogs = attendanceRecords.filter(
-              r => r.roll_number === (myStudentData?.roll_number || profile.member_code)
+              r => r.unique_id === (myStudentData?.unique_id || profile.member_code)
             );
             const totalP = myLogs.filter(r => r.status === 'P').length;
             const totalA = myLogs.filter(r => r.status === 'A').length;
@@ -1154,8 +1093,8 @@ export default function Dashboard() {
                         <p className="font-extrabold text-slate-900 mt-1">{myStudentData?.name || profile.member_name}</p>
                       </div>
                       <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-100">
-                        <p className="text-xs text-blue-600 uppercase font-bold">Roll Number</p>
-                        <p className="font-mono font-extrabold text-blue-950 mt-1">{myStudentData?.roll_number || profile.member_code}</p>
+                        <p className="text-xs text-blue-600 uppercase font-bold">Unique ID</p>
+                        <p className="font-mono font-extrabold text-blue-950 mt-1">{myStudentData?.unique_id || myStudentData?.roll_number}</p>
                       </div>
                       <div className="p-3.5 bg-slate-50 rounded-2xl border">
                         <p className="text-xs text-slate-500 uppercase font-bold">Class</p>
@@ -1366,7 +1305,7 @@ export default function Dashboard() {
                             <thead>
                               <tr className="border-b-2 bg-slate-100 text-slate-700 text-xs uppercase">
                                 <th className="p-3.5">S.No</th>
-                                <th className="p-3.5">Roll Number</th>
+                                <th className="p-3.5">Student ID (Roll)</th>
                                 <th className="p-3.5">Student Name</th>
                                 <th className="p-3.5 text-center bg-emerald-100/60 text-emerald-950 font-extrabold">
                                   Mark Attendance ({activeClickedPeriod.periodKey})
@@ -1387,7 +1326,7 @@ export default function Dashboard() {
                                 return (
                                   <tr key={stu.id} className="border-b hover:bg-slate-50">
                                     <td className="p-3.5 font-mono text-xs text-slate-500">0{idx + 1}</td>
-                                    <td className="p-3.5 font-mono font-bold text-blue-950">{stu.roll_number}</td>
+                                    <td className="p-3.5 font-mono font-bold text-blue-950">{stu.unique_id || stu.roll_number}</td>
                                     <td className="p-3.5 font-extrabold text-slate-900">{stu.name}</td>
                                     <td className="p-3.5 text-center bg-emerald-50/30">
                                       <div className="inline-flex items-center gap-2.5">
@@ -1444,6 +1383,97 @@ export default function Dashboard() {
                   </div>
                 )}
 
+                {/* 🌟 NAYA SECTION: MATRIX EXCEL SHEET VIEW & EXPORT */}
+                {showTeacherAttendance && (
+                  <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200 mt-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-4 gap-4">
+                      <div>
+                        <span className="text-xs font-extrabold uppercase tracking-widest bg-indigo-100 text-indigo-900 px-3 py-1 rounded-full">
+                          Teacher Logs
+                        </span>
+                        <h2 className="text-xl font-black text-slate-900 mt-2">📋 Attendance History Matrix</h2>
+                      </div>
+                      
+                      <button 
+                        onClick={handleExportToExcelMatrix} 
+                        disabled={matrixData.length === 0}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-3 rounded-lg shadow-md flex items-center gap-2 transition disabled:opacity-50"
+                      >
+                        📥 Export Spreadsheet (.CSV)
+                      </button>
+                    </div>
+                    
+                    {teacherLogs.length === 0 ? (
+                      <p className="text-sm text-slate-400 py-8 text-center font-bold">Aapne abhi tak koi attendance save nahi ki hai.</p>
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap gap-4 mb-4">
+                          <div className="w-full sm:w-auto">
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Filter by Class</label>
+                            <select 
+                              value={historyFilterClass} 
+                              onChange={(e) => setHistoryFilterClass(e.target.value)}
+                              className="border border-slate-300 rounded-lg p-2 text-sm font-bold bg-slate-50"
+                            >
+                              {historyClassOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
+                          
+                          {historyFilterClass && (
+                            <div className="w-full sm:w-auto">
+                              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Filter by Lecture</label>
+                              <select 
+                                value={historyFilterLecture} 
+                                onChange={(e) => setHistoryFilterLecture(e.target.value)}
+                                className="border border-slate-300 rounded-lg p-2 text-sm font-bold bg-slate-50"
+                              >
+                                {historyLectureOptions.map(l => <option key={l} value={l}>{l}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+
+                        {matrixData.length === 0 ? (
+                          <p className="text-sm text-slate-500 text-center py-6">No data found for this selection.</p>
+                        ) : (
+                          // 🌟 NAYA LOGIC: Yahan humne horizontal scroll lagaya hai aur table ki minimum width set ki hai
+                          <div className="overflow-x-auto overflow-y-auto max-h-[500px] border border-slate-300 rounded-lg">
+                            <table className="min-w-max w-full text-left border-collapse text-sm">
+                              <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+                                <tr>
+                                  <th className="border border-slate-300 p-2 text-slate-700 text-[11px] font-extrabold uppercase min-w-[100px]">Student ID</th>
+                                  <th className="border border-slate-300 p-2 text-slate-700 text-[11px] font-extrabold uppercase min-w-[150px]">Student Name</th>
+                                  {uniqueDates.map(date => (
+                                    <th key={date} className="border border-slate-300 p-2 text-slate-700 text-[10px] font-extrabold uppercase text-center min-w-[60px] whitespace-nowrap">
+                                      {date}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {matrixData.map((student, idx) => (
+                                  <tr key={student.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                    <td className="border border-slate-300 p-2 font-mono text-[11px] text-slate-500 font-semibold">{student.id}</td>
+                                    <td className="border border-slate-300 p-2 font-bold text-slate-800 text-xs">{student.name}</td>
+                                    {uniqueDates.map(date => {
+                                      const status = student.attendance[date];
+                                      return (
+                                        <td key={date} className={`border border-slate-300 p-2 text-center font-extrabold text-xs ${status === 'P' ? 'text-green-700' : status === 'A' ? 'text-red-700' : 'text-slate-300'}`}>
+                                          {status || '-'}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {showTeacherNotices && (
                   <div className="bg-white p-6 rounded-3xl shadow-xs border border-slate-200">
                     <h2 className="text-lg font-bold text-slate-800 mb-2">📢 Post Class Announcement</h2>
@@ -1474,16 +1504,13 @@ export default function Dashboard() {
             return (
               <div className="space-y-8">
                 
-                {/* A. ADMIN MASTER TIME-TABLE BUILDER */}
                 {showTeachers && renderMasterTimeTableGrid('admin')}
 
-                {/* B. MANAGE TEACHERS */}
                 {showTeachers && (
                   <div className="bg-white p-6 rounded-3xl shadow-xs border border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4">👨‍🏫 Register Teachers (Unique ID like T1, T2, TCH-101 & Password)</h3>
-                    <form onSubmit={handleAddTeacher} className="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border">
+                    <h3 className="text-lg font-bold text-slate-800 mb-4">👨‍🏫 Register Teachers (ID is auto-generated)</h3>
+                    <form onSubmit={handleAddTeacher} className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border">
                       <input type="text" placeholder="Teacher Name *" value={tName} onChange={e => setTName(e.target.value)} required className="border bg-white p-2.5 rounded-xl text-sm" />
-                      <input type="text" placeholder="Teacher ID (e.g. T1, T2) *" value={tUniqueId} onChange={e => setTUniqueId(e.target.value)} required className="border bg-white p-2.5 rounded-xl text-sm" />
                       <input type="text" placeholder="Password *" value={tPassword} onChange={e => setTPassword(e.target.value)} required className="border bg-white p-2.5 rounded-xl text-sm" />
                       <select value={tClass} onChange={e => setTClass(e.target.value)} required className="border p-2.5 rounded-xl text-sm bg-white">
                         <option value="" disabled>-- Primary Class * --</option>
@@ -1497,7 +1524,7 @@ export default function Dashboard() {
                         <thead>
                           <tr className="border-b bg-slate-50 text-slate-600">
                             <th className="p-3">Name</th>
-                            <th className="p-3">Unique ID</th>
+                            <th className="p-3">Unique ID (Login ID)</th>
                             <th className="p-3">Primary Class</th>
                             <th className="p-3">Password (Editable)</th>
                             <th className="p-3">Action</th>
@@ -1524,7 +1551,6 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* C. CLASS-WISE STUDENT DIRECTORY */}
                 {showStudents && (
                   <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xs border-2 border-blue-200">
                     {!selectedAdminClass ? (
@@ -1562,7 +1588,6 @@ export default function Dashboard() {
                                 onClick={() => setSelectedAdminClass(clsName)}
                                 className="cursor-pointer group relative p-5 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-gradient-to-br from-white to-slate-50 hover:to-blue-50/40 shadow-2xs hover:shadow-md transition flex flex-col justify-between"
                               >
-                                {/* DELETE BUTTON */}
                                 <button
                                   onClick={(e) => handleDeleteClass(e, clsName)}
                                   className="absolute top-3 right-3 text-red-600 bg-red-100 hover:bg-red-200 px-2 py-0.5 rounded-lg transition text-lg font-black"
@@ -1612,11 +1637,11 @@ export default function Dashboard() {
 
                         <form onSubmit={handleAddStudentToSelectedClass} className="bg-blue-50/70 p-5 rounded-2xl border border-blue-200 space-y-4">
                           <h4 className="text-sm font-extrabold text-blue-950">
-                            ➕ Add New Student to <span className="underline">{selectedAdminClass}</span>
+                            ➕ Add New Student to <span className="underline">{selectedAdminClass}</span> (ID auto-generates)
                           </h4>
                           <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-3">
                             <input type="text" placeholder="Student Full Name *" value={sName} onChange={e => setSName(e.target.value)} required className="border bg-white p-2.5 rounded-xl text-xs font-semibold sm:col-span-2" />
-                            <input type="text" placeholder="Roll No (e.g. 101) *" value={sRoll} onChange={e => setSRoll(e.target.value)} required className="border bg-white p-2.5 rounded-xl text-xs font-semibold" />
+                            <input type="number" placeholder="Roll No (e.g. 1, 2) *" value={sRoll} onChange={e => setSRoll(e.target.value)} required className="border bg-white p-2.5 rounded-xl text-xs font-semibold" />
                             <input type="text" placeholder="Section (A)" value={sSection} onChange={e => setSSection(e.target.value)} className="border bg-white p-2.5 rounded-xl text-xs" />
                             <input type="text" placeholder="Rank (1st)" value={sPosition} onChange={e => setSPosition(e.target.value)} className="border bg-white p-2.5 rounded-xl text-xs" />
                             <button type="submit" className="bg-blue-900 hover:bg-blue-800 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs">
@@ -1629,6 +1654,7 @@ export default function Dashboard() {
                           <table className="w-full text-left border-collapse text-sm">
                             <thead>
                               <tr className="border-b bg-slate-100 text-slate-700 text-xs uppercase">
+                                <th className="p-3">Login ID (Auto)</th>
                                 <th className="p-3">Roll Number</th>
                                 <th className="p-3">Student Name</th>
                                 <th className="p-3">Section & Rank</th>
@@ -1638,8 +1664,9 @@ export default function Dashboard() {
                             <tbody>
                               {classSpecificStudents.map(s => (
                                 <tr key={s.id} className="border-b">
+                                  <td className="p-3 font-mono font-bold text-blue-900">{s.unique_id || '-'}</td>
                                   <td className="p-3">
-                                    <span className="font-mono font-bold text-blue-950 bg-blue-50 px-2.5 py-1 rounded mr-2">{s.roll_number}</span>
+                                    <span className="font-mono font-bold text-slate-600 bg-slate-50 px-2.5 py-1 rounded mr-2">{s.roll_number}</span>
                                     <button onClick={() => handleEditRollNumber(s.id, s.roll_number)} className="text-xs text-blue-600 underline font-semibold">Edit</button>
                                   </td>
                                   <td className="p-3 font-bold text-slate-900">{s.name}</td>
@@ -1657,21 +1684,58 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* D. SEPARATE 6-SUBJECT RESULT MARKSHEET PAGE */}
                 {showResults && renderResultMarksheetManager()}
 
-                {/* E. ADMIN SECURITY */}
                 {showSecurity && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white p-6 rounded-3xl shadow-xs border-2 border-amber-200">
                       <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-sm font-extrabold text-slate-900 uppercase">🔐 Admin Profile & Security</h3>
+                        <h3 className="text-sm font-extrabold text-slate-900 uppercase">🔐 Admin Profile & Campus Images</h3>
                         <span className="font-mono font-extrabold text-sm bg-blue-100 text-blue-950 px-2.5 py-1 rounded-lg">ID: {adminCode}</span>
                       </div>
-                      <form onSubmit={handleSaveAdminCredentials} className="space-y-3 mt-4">
-                        <input type="text" required placeholder="Create Admin Username" value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} className="w-full border p-2.5 rounded-xl text-sm" />
-                        <input type="text" required placeholder="Set Admin Password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full border p-2.5 rounded-xl text-sm" />
-                        <button type="submit" disabled={savingCreds} className="w-full bg-blue-900 text-white font-bold py-2.5 rounded-xl text-sm">💾 Save Admin Credentials</button>
+                      
+                      <form onSubmit={handleSaveAdminCredentialsAndImages} className="space-y-4 mt-4">
+                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-3">
+                          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-widest border-b border-amber-200 pb-2">Admin Login Details</p>
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 block mb-1">Admin Username</label>
+                            <input type="text" required placeholder="Create Admin Username" value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} className="w-full border p-2.5 rounded-xl text-sm font-semibold text-slate-900" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 block mb-1">Admin Password</label>
+                            <input type="text" required placeholder="Set Admin Password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full border p-2.5 rounded-xl text-sm font-semibold text-slate-900" />
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
+                          <p className="text-[11px] font-bold text-blue-900 uppercase tracking-widest border-b border-blue-200 pb-2">Campus Visuals (Direct Upload)</p>
+                          
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 block mb-1">Upload College Logo (PNG/JPG)</label>
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={(e) => setLogoFile(e.target.files?.[0] || null)} 
+                              className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" 
+                            />
+                            {currentLogoUrl && !logoFile && <p className="text-[10px] text-emerald-600 mt-1">✓ Current logo is active</p>}
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 block mb-1">Upload Campus Background (JPG/PNG)</label>
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={(e) => setBgFile(e.target.files?.[0] || null)} 
+                              className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer" 
+                            />
+                            {currentBgUrl && !bgFile && <p className="text-[10px] text-emerald-600 mt-1">✓ Current background is active</p>}
+                          </div>
+                        </div>
+
+                        <button type="submit" disabled={savingCreds} className="w-full bg-blue-900 hover:bg-blue-800 text-white font-extrabold py-3 rounded-xl text-sm shadow-md transition-colors">
+                          {savingCreds ? 'Uploading Images & Saving...' : '💾 Save Campus & Security Details'}
+                        </button>
                       </form>
                     </div>
 

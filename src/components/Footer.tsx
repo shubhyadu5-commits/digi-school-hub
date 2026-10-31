@@ -1,171 +1,185 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+// TypeScript ko batane ke liye ki window object par ye properties aa sakti hain
+declare global {
+  interface Window {
+    googleTranslateElementInit: () => void;
+    google: any;
+  }
+}
+
 type ModalType = 'about' | 'guide' | 'privacy' | 'terms' | 'security' | null;
 
 export default function Footer() {
   const navigate = useNavigate();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
+  // Function to handle Google Translate for Hindi
+  const handleTranslateHindi = () => {
+    if (!document.getElementById('google_translate_script')) {
+      const script = document.createElement('script');
+      script.id = 'google_translate_script';
+      script.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+      document.body.appendChild(script);
+
+      window.googleTranslateElementInit = () => {
+        new window.google.translate.TranslateElement({
+          pageLanguage: 'en',
+          includedLanguages: 'hi,en',
+          layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
+        }, 'google_translate_element');
+      };
+
+      setTimeout(() => {
+        const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+        if (select) {
+          select.value = 'hi';
+          select.dispatchEvent(new Event('change'));
+        }
+      }, 1000);
+    } else {
+      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (select) {
+        select.value = 'hi';
+        select.dispatchEvent(new Event('change'));
+      }
+    }
+  };
+
+  // Function to handle English translation reset
+  const handleTranslateEnglish = () => {
+      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (select) {
+        select.value = 'en'; 
+        select.dispatchEvent(new Event('change'));
+      }
+  };
+
+  // Function to handle Restricted Links (Role Portals)
+  const handleRestrictedLinkClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    alert('Please select your college first and then login to access your portal.');
+    navigate('/onboarding');
+  };
+
   return (
-    <footer className="bg-white border-t border-slate-200/80 text-slate-600 mt-12 relative">
+    <footer className="bg-[#050e14] text-slate-300 font-sans border-t-4 border-amber-700 mt-12 relative z-40">
       
-      {/* Top Pre-Footer Banner */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-10">
-        <div className="rounded-3xl bg-gradient-to-r from-[#e3effd] via-[#cbe2fc] to-[#b3d4ff] p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6 border border-blue-200/70 shadow-xs">
-          <div className="text-center md:text-left">
-            <span className="bg-white/80 text-blue-700 text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full">
-              🚀 Welcome to SchoolWeave Live
-            </span>
-            <h3 className="text-2xl sm:text-3xl font-black text-slate-950 mt-2 tracking-tight">
-              Launch your digital school or college portal in minutes.
-            </h3>
-            <p className="text-slate-700 text-xs sm:text-sm mt-1 font-medium">
-              Complete with Master Time-Table Grid, live period attendance (P/A), and 6-subject student marksheets.
-            </p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3 shrink-0">
-            <button
-              onClick={() => navigate('/onboarding')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-6 py-3 rounded-full shadow-md transition"
-            >
-              Find Your School →
-            </button>
-            <button
-              onClick={() => setActiveModal('guide')}
-              className="bg-white hover:bg-slate-50 text-blue-950 border border-blue-200 font-extrabold text-sm px-5 py-3 rounded-full shadow-2xs transition"
-            >
-              📘 How to Use & Help Guide
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Hidden div for Google Translate widget */}
+      <div id="google_translate_element" style={{ display: 'none' }}></div>
 
-      {/* Main Footer Links Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
-        
-        {/* Column 1: Brand Info */}
-        <div className="lg:col-span-2 space-y-4">
-          <Link to="/" className="flex items-center gap-2.5 group w-fit">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-700 to-purple-600 text-white font-black text-lg flex items-center justify-center shadow-sm">
-              S
+      {/* ================================================================= */}
+      {/* MAIN FOOTER GRID (IIT KANPUR DARK STYLE)                          */}
+      {/* ================================================================= */}
+      <div className="max-w-7xl mx-auto px-6 sm:px-12 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
+          
+          {/* COLUMN 1: Brand Info & Developer */}
+          <div className="space-y-6">
+            <Link to="/" className="flex items-center gap-4 group w-fit">
+              <div className="w-12 h-12 bg-transparent border-2 border-white/20 rounded-full flex items-center justify-center shrink-0 group-hover:border-amber-500 transition-colors">
+                <span className="text-white font-black text-xl">S</span>
+              </div>
+              <div>
+                 <h3 className="text-white text-sm font-bold uppercase tracking-widest">SchoolWeave Live</h3>
+                 <p className="text-xs text-slate-400 mt-1">Digital Campus Portal</p>
+              </div>
+            </Link>
+
+            <div className="text-sm space-y-4 text-slate-400">
+              <p>
+                Designed & Developed by<br/>
+                <button onClick={() => setActiveModal('about')} className="text-slate-200 font-bold hover:text-amber-500 transition-colors mt-1">
+                  Shubham Yadav
+                </button><br/>
+                Uttar pradesh , India
+              </p>
+              
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-950/30 border border-emerald-900/50 px-3 py-1.5 rounded-full w-fit">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                All Systems Operational
+              </div>
             </div>
-            <span className="text-xl font-black tracking-tight text-slate-900">
-              SchoolWeave <span className="text-indigo-600">Live</span>
-            </span>
-          </Link>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-sm leading-relaxed">
-            <strong>SchoolWeave Live</strong> is a next-generation institutional ERP & digital school platform designed & developed by <strong className="text-slate-800">Shubham Yadav</strong> to connect Administrators, Faculty, and Students in real time.
-          </p>
-          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full w-fit">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            All SchoolWeave Live Systems Operational
           </div>
+
+          {/* COLUMN 2: Platform Links */}
+          <div className="space-y-4">
+            <h3 className="text-white text-sm font-bold uppercase tracking-wider mb-6">Platform</h3>
+            <ul className="space-y-3 text-sm">
+              <li><Link to="/" className="hover:text-amber-500 transition-colors">Overview & Home</Link></li>
+              <li><Link to="/onboarding" className="hover:text-amber-500 transition-colors">School & College Directory</Link></li>
+              <li><Link to="/onboarding" className="hover:text-amber-500 transition-colors">Register New Institute</Link></li>
+              <li><button onClick={handleRestrictedLinkClick} className="hover:text-amber-500 transition-colors text-left w-full">Live ERP Dashboard</button></li>
+            </ul>
+          </div>
+
+          {/* COLUMN 3: Role Portals */}
+          <div className="space-y-4">
+            <h3 className="text-white text-sm font-bold uppercase tracking-wider mb-6">Role Portals</h3>
+            <ul className="space-y-3 text-sm">
+              <li><button onClick={handleRestrictedLinkClick} className="hover:text-amber-500 transition-colors text-left w-full">🎓 Student Portal</button></li>
+              <li><button onClick={handleRestrictedLinkClick} className="hover:text-amber-500 transition-colors text-left w-full">👨‍🏫 Faculty Attendance</button></li>
+              <li><button onClick={handleRestrictedLinkClick} className="hover:text-amber-500 transition-colors text-left w-full">🔒 Administrator ERP</button></li>
+              <li><Link to="/super-admin" className="text-amber-500 hover:text-amber-400 font-bold transition-colors">⚡ Super Admin Control</Link></li>
+            </ul>
+          </div>
+
+          {/* COLUMN 4: Help Guide & Legal Modals */}
+          <div className="space-y-4">
+            <h3 className="text-white text-sm font-bold uppercase tracking-wider mb-6">Help & Legal</h3>
+            <ul className="space-y-3 text-sm">
+              <li><button onClick={() => setActiveModal('guide')} className="hover:text-amber-500 transition-colors text-left">📘 User & Troubleshooting Guide</button></li>
+              <li><button onClick={() => setActiveModal('about')} className="hover:text-amber-500 transition-colors text-left">👨‍💻 About Us & Developer</button></li>
+              <li><button onClick={() => setActiveModal('privacy')} className="hover:text-amber-500 transition-colors text-left">🛡️ Privacy Policy</button></li>
+              <li><button onClick={() => setActiveModal('terms')} className="hover:text-amber-500 transition-colors text-left">📜 Terms of Service</button></li>
+              <li><button onClick={() => setActiveModal('security')} className="hover:text-amber-500 transition-colors text-left">🔐 Security & Verification</button></li>
+            </ul>
+          </div>
+
         </div>
-
-        {/* Column 2: Platform Navigation */}
-        {/* PLATFORM SECTION */}
-<div>
-  <h3 className="font-bold text-slate-900 tracking-wider text-sm mb-4 uppercase">Platform</h3>
-  <ul className="space-y-4">
-    <li>
-      <Link to="/" className="text-slate-600 hover:text-blue-600 font-medium transition block py-1">
-        Overview & Home
-      </Link>
-    </li>
-    <li>
-      <Link to="/onboarding" className="text-slate-600 hover:text-blue-600 font-medium transition block py-1">
-        School & College Directory
-      </Link>
-    </li>
-    <li>
-      <Link to="/onboarding" className="text-slate-600 hover:text-blue-600 font-medium transition block py-1">
-        Register New Institute
-      </Link>
-    </li>
-    <li>
-      <Link to="/dashboard" className="text-slate-600 hover:text-blue-600 font-medium transition block py-1">
-        Live ERP Dashboard
-      </Link>
-    </li>
-  </ul>
-</div>
-
-        {/* Column 3: Role Portals */}
-        <div>
-          <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 mb-4">
-            Role Portals
-          </h4>
-          <ul className="space-y-2.5 text-sm font-medium text-slate-500">
-            <li><Link to="/onboarding" className="hover:text-blue-600 transition">🎓 Student Read-Only Portal</Link></li>
-            <li><Link to="/onboarding" className="hover:text-blue-600 transition">👨‍🏫 Faculty Period Attendance</Link></li>
-            <li><Link to="/onboarding" className="hover:text-blue-600 transition">🔒 Administrator ERP</Link></li>
-            <li><Link to="/super-admin" className="hover:text-amber-600 transition">⚡ Super Admin Control</Link></li>
-          </ul>
-        </div>
-
-        {/* Column 4: Help Guide, About & Legal */}
-        <div>
-          <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 mb-4">
-            Help & Legal
-          </h4>
-          <ul className="space-y-2.5 text-sm font-medium text-slate-500">
-            <li>
-              <button onClick={() => setActiveModal('guide')} className="text-blue-600 font-bold hover:underline transition text-left">
-                📘 User & Troubleshooting Guide
-              </button>
-            </li>
-            <li>
-              <button onClick={() => setActiveModal('about')} className="hover:text-blue-600 transition text-left">
-                👨‍💻 About Us & Developer
-              </button>
-            </li>
-            <li>
-              <button onClick={() => setActiveModal('privacy')} className="hover:text-blue-600 transition text-left">
-                🛡️ Privacy Policy
-              </button>
-            </li>
-            <li>
-              <button onClick={() => setActiveModal('terms')} className="hover:text-blue-600 transition text-left">
-                📜 Terms of Service
-              </button>
-            </li>
-            <li>
-              <button onClick={() => setActiveModal('security')} className="hover:text-blue-600 transition text-left">
-                🔐 Security & Verification
-              </button>
-            </li>
-          </ul>
-        </div>
-
       </div>
 
-      {/* Bottom Legal & Copyright Bar */}
-      <div className="border-t border-slate-100 bg-slate-50/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-medium">
-          <p>
-            © {new Date().getFullYear()} <strong>SchoolWeave Live</strong> Built by{' '}
-            <button onClick={() => setActiveModal('about')} className="text-blue-600 font-bold hover:underline">
-              Shubham Yadav
-            </button>
-          </p>
-          <div className="flex flex-wrap items-center gap-6">
-            <button onClick={() => setActiveModal('guide')} className="text-blue-600 font-bold hover:underline cursor-pointer transition">
-              📘 Help Guide
-            </button>
-            <button onClick={() => setActiveModal('about')} className="hover:text-blue-600 font-semibold cursor-pointer transition">
-              About Us
-            </button>
-            <button onClick={() => setActiveModal('privacy')} className="hover:text-blue-600 font-semibold cursor-pointer transition">
-              Privacy Policy
-            </button>
-            <button onClick={() => setActiveModal('terms')} className="hover:text-blue-600 font-semibold cursor-pointer transition">
-              Terms of Service
-            </button>
-            <button onClick={() => setActiveModal('security')} className="hover:text-blue-600 font-semibold cursor-pointer transition">
-              Security & Verification
-            </button>
+      {/* ================================================================= */}
+      {/* BOTTOM COPYRIGHT BAR                                              */}
+      {/* ================================================================= */}
+      <div className="bg-[#03080b] py-6 px-6 sm:px-12 border-t border-white/5">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          
+          {/* Social Icons (Actual Links to be updated by you) */}
+          <div className="flex items-center gap-4 text-slate-400">
+            {/* INSTAGRAM LINK */}
+            <a href="https://www.instagram.com/shubhamyadav__072025?xtok=MTBjbTNkdGRhZ3Z0dA==" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            </a>
+            {/* TWITTER (X) LINK */}
+            <a href="https://twitter.com/yourprofile" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+            </a>
+            {/* LINKEDIN LINK */}
+            <a href="https://www.linkedin.com/in/shubham-yadav-209080420?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+            </a>
+            {/* FACEBOOK LINK */}
+            <a href="https://facebook.com/yourprofile" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3 8h-1.35c-.538 0-.65.221-.65.778v1.222h2l-.209 2h-1.791v7h-3v-7h-2v-2h2v-2.308c0-1.769.931-2.692 3.029-2.692h1.971v3z"/></svg>
+            </a>
           </div>
+
+          <div className="text-xs text-slate-500 flex flex-col md:flex-row items-center gap-2 md:gap-8 text-center">
+             <p>© {new Date().getFullYear()} SchoolWeave Live. Built by <button onClick={() => setActiveModal('about')} className="text-slate-300 font-bold hover:text-amber-500 transition">Shubham Yadav</button></p>
+             <div className="flex gap-4">
+                 <button onClick={handleTranslateEnglish} className="hover:text-white transition cursor-pointer">English</button>
+                 <button onClick={handleTranslateHindi} className="hover:text-white transition cursor-pointer">हिन्दी</button>
+             </div>
+          </div>
+
+          {/* Scroll to Top Arrow */}
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-slate-400 hover:text-white p-2 border border-slate-700 hover:border-slate-500 rounded transition">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+          </button>
+          
         </div>
       </div>
 
@@ -175,11 +189,11 @@ export default function Footer() {
       {activeModal && (
         <div 
           onClick={() => setActiveModal(null)}
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5"
+            className="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 text-slate-800"
           >
             {/* 0. COMPLETE USER & TROUBLESHOOTING GUIDE */}
             {activeModal === 'guide' && (
@@ -198,7 +212,7 @@ export default function Footer() {
 
                 <div className="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
                   <div className="p-4 bg-slate-50 rounded-2xl border space-y-2">
-                    <h4 className="font-extrabold text-slate-900 text-sm">1. 🏫 Register & Approve a School/College</h4>
+                    <h4 className="font-extrabold text-slate-900 text-sm">🏫 1. Register & Approve a School/College</h4>
                     <p>Go to <strong>Find Schools & Colleges</strong>, click <strong>+ Register New Institute</strong>, and submit details. Then visit the <strong>⚡ Approvals</strong> tab in the navbar to approve the campus so it goes live.</p>
                   </div>
 
