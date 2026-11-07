@@ -70,13 +70,15 @@ export default function Landing() {
                 <div className="absolute inset-0 bg-slate-900/60 z-10" />
                 
                 {/* Sliding Text Content */}
-                <div className="relative z-20 px-4 w-full max-w-4xl pb-32">
-                  <div className="inline-flex flex-col items-center mb-6">
-                     <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-white mb-4 rotate-45 flex items-center justify-center shadow-2xl">
-                        <span className="text-white font-black text-2xl -rotate-45">S</span>
-                     </div>
-                     <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tight uppercase drop-shadow-lg text-center">
-                       {slide.title}
+<div className="relative z-20 px-4 w-full max-w-4xl pb-32">
+  <div className="inline-flex flex-col items-center mb-6">
+    <img 
+      src="/favicon.svg" 
+      alt="Digi Saraswati Logo" 
+      className="w-16 h-16 sm:w-20 sm:h-20 mb-4 shadow-2xl rounded-xl object-contain bg-white/10 p-1 border-2 border-white/20"
+    />
+    <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tight uppercase drop-shadow-lg text-center">
+      {slide.title}
                      </h1>
                   </div>
                   <p className="text-slate-200 text-sm sm:text-lg font-medium max-w-2xl mx-auto drop-shadow-md text-center px-2">
@@ -152,7 +154,7 @@ export default function Landing() {
                   <svg className="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                 </h2>
                 <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                  SchoolWeave Live has been at the forefront of digital management in education. The diverse roles of Admins, Faculty, and Students span across attendance, marksheets, and real-time connectivity, ensuring a holistic approach to academic tracking.
+                  Digi Saraswati Live has been at the forefront of digital management in education. The diverse roles of Admins, Faculty, and Students span across attendance, marksheets, and real-time connectivity, ensuring a holistic approach to academic tracking.
                 </p>
               </div>
               <button 

@@ -102,10 +102,14 @@ export default function Dashboard() {
   const [savingAll, setSavingAll] = useState(false);
 
   const [posts, setPosts] = useState<any[]>([]);
-  const [newPost, setNewPost] = useState('');
+  
+  // 🌟 NAYA STATE: Notices ke liye
+  const [newPostSubject, setNewPostSubject] = useState(''); // New Subject Field for Admin Notice
+  const [newPostContent, setNewPostContent] = useState(''); // Main content field
+  const [selectedNoticeToView, setSelectedNoticeToView] = useState<any | null>(null); // For Full Screen Modal
+  
   const [myStudentData, setMyStudentData] = useState<any>(null);
 
-  // 🌟 NAYA STATE: Teacher kis class aur period ka filter dekh raha hai history mein
   const [historyFilterClass, setHistoryFilterClass] = useState<string>('');
   const [historyFilterLecture, setHistoryFilterLecture] = useState<string>('');
 
@@ -184,7 +188,6 @@ export default function Dashboard() {
 
   const allClassOptions = classList.map(c => c.class_name);
 
-  // 🌟 NAYA LOGIC: Matrix Data Prepare Karna
   const teacherLogs = useMemo(() => {
     return attendanceRecords.filter(r => r.marked_by.includes(profile?.member_code || ''));
   }, [attendanceRecords, profile]);
@@ -208,7 +211,7 @@ export default function Dashboard() {
     if (!historyFilterClass || !historyFilterLecture) return { uniqueDates: [], matrixData: [] };
     
     const filteredLogs = teacherLogs.filter(r => r.class_name === historyFilterClass && r.lecture_name === historyFilterLecture);
-    const dates = Array.from(new Set(filteredLogs.map(r => r.attendance_date))).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()); // Latest date first
+    const dates = Array.from(new Set(filteredLogs.map(r => r.attendance_date))).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()); 
     
     const studentMap = new Map();
     filteredLogs.forEach(log => {
@@ -222,7 +225,6 @@ export default function Dashboard() {
     return { uniqueDates: dates, matrixData: matrix };
   }, [teacherLogs, historyFilterClass, historyFilterLecture]);
 
-  // 🌟 NAYA FUNCTION: MATRIX EXCEL EXPORT
   const handleExportToExcelMatrix = () => {
     if (matrixData.length === 0 || uniqueDates.length === 0) { 
       alert('No attendance records found to export for the selected filter!'); 
@@ -230,11 +232,9 @@ export default function Dashboard() {
     }
     
     let csvContent = "data:text/csv;charset=utf-8,";
-    // Header Row
     csvContent += `Class: ${historyFilterClass} - ${historyFilterLecture}\n\n`;
     csvContent += "Student ID,Student Name," + uniqueDates.join(",") + "\n";
     
-    // Data Rows
     matrixData.forEach(student => {
       let row = `${student.id},${student.name},`;
       const attendanceStatuses = uniqueDates.map(date => student.attendance[date] || '-');
@@ -519,11 +519,41 @@ export default function Dashboard() {
     await supabase.from('campus_students').delete().eq('id', id); setStudents(students.filter(s => s.id !== id));
   };
 
+  // 🌟 NAYA LOGIC: Handle Create Post Modified with Subject Support
   const handleCreatePost = async () => {
-    if (!newPost.trim() || !profile) return;
+    if (!newPostContent.trim() || !newPostSubject.trim() || !profile) {
+      alert("Please enter both Subject and Notice content.");
+      return;
+    }
     const authorDisplay = profile.member_name ? `${profile.member_name} (${profile.member_code || profile.role})` : profile.email;
-    const { data } = await supabase.from('posts').insert([{ content: newPost, author_email: authorDisplay, author_role: profile.role, institute_id: profile.institute_id }]).select();
-    if (data) { setPosts([data[0], ...posts]); setNewPost(''); alert('📢 Announcement published successfully!'); }
+    
+    // Yahan assume kar rahe hain ki aapki 'posts' table mein 'subject' naam ka ek naya column add ho chuka hai. 
+    // Agar nahi hua hai, toh Supabase Dashboard mein jaakar 'posts' table mein 'subject' (text) column add kar lena.
+    const payload = { 
+      subject: newPostSubject,
+      content: newPostContent, 
+      author_email: authorDisplay, 
+      author_role: profile.role, 
+      institute_id: profile.institute_id 
+    };
+
+    const { data, error } = await supabase.from('posts').insert([payload]).select();
+    
+    if (data && !error) { 
+      setPosts([data[0], ...posts]); 
+      setNewPostSubject(''); 
+      setNewPostContent(''); 
+      alert('📢 Announcement published successfully to Student Notice Board!'); 
+    } else {
+      console.error(error);
+      alert('Error posting announcement. Ensure "subject" column exists in posts table.');
+    }
+  };
+
+  // 🌟 NAYA HELPER: Date Formatting for Notice Board
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('en-GB', options);
   };
 
   const renderMasterTimeTableGrid = (mode: 'admin' | 'teacher') => {
@@ -1040,7 +1070,7 @@ export default function Dashboard() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto relative">
         <div className="max-w-6xl mx-auto">
 
           {/* ========================================================= */}
@@ -1199,16 +1229,49 @@ export default function Dashboard() {
                   </div>
                 )}
 
+                {/* 🌟 NAYA SECTION: Interactive Date-wise Student Notice Board */}
                 {showNotices && (
                   <div className="bg-white p-6 rounded-3xl shadow-xs border border-slate-200">
-                    <h2 className="text-lg font-extrabold text-slate-900 border-b pb-3 mb-4">📢 Official Announcements</h2>
-                    <div className="space-y-3">
-                      {posts.map(post => (
-                        <div key={post.id} className="p-4 rounded-2xl bg-slate-50 border">
-                          <span className="font-bold text-sm text-blue-950">{post.author_email}</span>
-                          <p className="text-slate-700 text-sm mt-1">{post.content}</p>
+                    <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-200 pb-4">
+                      📢 Official Announcements
+                    </h2>
+                    
+                    <div className="space-y-4">
+                      {posts.map((notice) => (
+                        <div
+                          key={notice.id}
+                          onClick={() => setSelectedNoticeToView(notice)}
+                          className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-4 sm:gap-6 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all group"
+                        >
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex flex-col items-center justify-center min-w-[70px] sm:min-w-[80px] shrink-0 group-hover:bg-amber-50 group-hover:border-amber-200 transition-colors">
+                            <span className="text-xl sm:text-2xl font-black text-slate-700 group-hover:text-amber-700 leading-none">
+                              {new Date(notice.created_at || new Date()).getDate()}
+                            </span>
+                            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase group-hover:text-amber-600 mt-1">
+                              {new Date(notice.created_at || new Date()).toLocaleString('default', { month: 'short' })}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-sm sm:text-lg font-bold text-slate-800 group-hover:text-amber-700 transition-colors line-clamp-1">
+                              {notice.subject || "Campus Notice"}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-slate-500 mt-1 line-clamp-1">
+                              {notice.content}
+                            </p>
+                          </div>
+                          <div className="text-slate-300 group-hover:text-amber-600 shrink-0 transition-transform group-hover:translate-x-1">
+                            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
                         </div>
                       ))}
+
+                      {posts.length === 0 && (
+                        <div className="text-center py-12 text-slate-500 font-medium">
+                          No new announcements at this time.
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1383,7 +1446,6 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* 🌟 NAYA SECTION: MATRIX EXCEL SHEET VIEW & EXPORT */}
                 {showTeacherAttendance && (
                   <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200 mt-8">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-4 gap-4">
@@ -1436,7 +1498,6 @@ export default function Dashboard() {
                         {matrixData.length === 0 ? (
                           <p className="text-sm text-slate-500 text-center py-6">No data found for this selection.</p>
                         ) : (
-                          // 🌟 NAYA LOGIC: Yahan humne horizontal scroll lagaya hai aur table ki minimum width set ki hai
                           <div className="overflow-x-auto overflow-y-auto max-h-[500px] border border-slate-300 rounded-lg">
                             <table className="min-w-max w-full text-left border-collapse text-sm">
                               <thead className="sticky top-0 bg-slate-100 z-10 shadow-sm">
@@ -1474,10 +1535,24 @@ export default function Dashboard() {
                   </div>
                 )}
 
+                {/* 🌟 NAYA LOGIC: Teacher Posting modified to support Subject */}
                 {showTeacherNotices && (
                   <div className="bg-white p-6 rounded-3xl shadow-xs border border-slate-200">
-                    <h2 className="text-lg font-bold text-slate-800 mb-2">📢 Post Class Announcement</h2>
-                    <textarea value={newPost} onChange={(e) => setNewPost(e.target.value)} className="w-full border rounded-xl p-3 text-sm" rows={3} placeholder="Write an announcement..." />
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">📢 Post Class Announcement</h2>
+                    <input 
+                      type="text" 
+                      value={newPostSubject} 
+                      onChange={(e) => setNewPostSubject(e.target.value)} 
+                      className="w-full border rounded-xl p-3 text-sm mb-3 font-semibold text-slate-800" 
+                      placeholder="Notice Subject (e.g., Upcoming Test)" 
+                    />
+                    <textarea 
+                      value={newPostContent} 
+                      onChange={(e) => setNewPostContent(e.target.value)} 
+                      className="w-full border rounded-xl p-3 text-sm" 
+                      rows={3} 
+                      placeholder="Write the full announcement..." 
+                    />
                     <div className="mt-3 flex justify-end">
                       <button onClick={handleCreatePost} className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm">Publish Announcement</button>
                     </div>
@@ -1756,11 +1831,25 @@ export default function Dashboard() {
                   </div>
                 )}
 
+                {/* 🌟 NAYA LOGIC: Admin Posting modified to support Subject */}
                 {showNotices && (
                   <div className="bg-white p-6 rounded-3xl shadow-xs border border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-800 mb-2">📢 Post Official Announcement</h3>
-                    <textarea value={newPost} onChange={(e) => setNewPost(e.target.value)} className="w-full border rounded-xl p-3 text-sm" rows={2} placeholder="Write an official notice..." />
-                    <button onClick={handleCreatePost} className="mt-2 bg-blue-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm">Post Notice</button>
+                    <h3 className="text-lg font-bold text-slate-800 mb-4">📢 Post Official Announcement</h3>
+                    <input 
+                      type="text" 
+                      value={newPostSubject} 
+                      onChange={(e) => setNewPostSubject(e.target.value)} 
+                      className="w-full border rounded-xl p-3 text-sm mb-3 font-semibold text-slate-800" 
+                      placeholder="Notice Subject (e.g., Diwali Holidays)" 
+                    />
+                    <textarea 
+                      value={newPostContent} 
+                      onChange={(e) => setNewPostContent(e.target.value)} 
+                      className="w-full border rounded-xl p-3 text-sm" 
+                      rows={3} 
+                      placeholder="Write the full official notice..." 
+                    />
+                    <button onClick={handleCreatePost} className="mt-3 bg-blue-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm">Post Notice</button>
                   </div>
                 )}
 
@@ -1769,6 +1858,44 @@ export default function Dashboard() {
           })()}
 
         </div>
+
+        {/* 🌟 NAYA SECTION: FULL SCREEN NOTICE MODAL (Common for all roles) */}
+        {selectedNoticeToView && (
+          <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-fade-in">
+              <div className="px-5 sm:px-8 py-5 border-b border-slate-200 flex justify-between items-start bg-slate-50">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 pr-4 leading-tight">
+                    {selectedNoticeToView.subject || "Campus Notice"}
+                  </h3>
+                  <p className="text-xs font-bold text-slate-500 mt-2 flex items-center gap-1.5">
+                    📅 Posted on: <span className="text-slate-700">{formatDate(selectedNoticeToView.created_at || new Date().toISOString())}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedNoticeToView(null)}
+                  className="text-slate-400 hover:text-slate-800 transition p-1.5 bg-white rounded-full shadow-sm hover:shadow-md border border-slate-200 shrink-0"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-5 sm:p-8 overflow-y-auto text-slate-700 text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+                {selectedNoticeToView.content}
+              </div>
+              <div className="px-5 sm:px-8 py-4 bg-slate-50 border-t border-slate-200 text-right">
+                <button
+                  onClick={() => setSelectedNoticeToView(null)}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-8 py-2.5 rounded-lg transition shadow-md hover:shadow-lg"
+                >
+                  Close Notice
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );

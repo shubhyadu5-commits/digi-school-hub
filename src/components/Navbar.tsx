@@ -28,9 +28,9 @@ export default function Navbar() {
   // Mock Global Notifications
   const globalNotifications = userEmail === 'shubhyadu5@gmail.com' ? [
     { id: 1, title: '⚡ Action Required', desc: 'Delhi Public School applied for listing.', time: '10 mins ago', type: 'admin' },
-    { id: 2, title: '🚀 System Update', desc: 'SchoolWeave Live Core v2.0 deployed successfully.', time: '2 hours ago', type: 'system' }
+    { id: 2, title: '🚀 System Update', desc: 'Digi Saraswati Live Core v2.0 deployed successfully.', time: '2 hours ago', type: 'system' }
   ] : [
-    { id: 1, title: '👋 Welcome to SchoolWeave!', desc: 'Explore the largest digital campus directory.', time: '1 day ago', type: 'system' }
+    { id: 1, title: '👋 Welcome to Digi Saraswati!', desc: 'Explore the largest digital campus directory.', time: '1 day ago', type: 'system' }
   ];
 
   useEffect(() => {
@@ -144,7 +144,7 @@ export default function Navbar() {
               {/* FEATURE DETAILS */}
               {infoModalContent === 'features' && (
                 <>
-                  <p className="text-base font-semibold text-slate-900">SchoolWeave Live is a next-generation Collective Digital Campus Directory and Academic ERP platform designed to seamlessly connect institutes, faculty, and students.</p>
+                  <p className="text-base font-semibold text-slate-900">Digi Saraswati Live is a next-generation Collective Digital Campus Directory and Academic ERP platform designed to seamlessly connect institutes, faculty, and students.</p>
                   <div>
                     <h4 className="font-bold text-slate-900 mb-1 border-l-4 border-amber-500 pl-3">🏫 Aggregated Institute Network</h4>
                     <p className="pl-4">A unified portal where multiple schools and colleges can register, creating a massive digital directory. Users can search for any campus globally and access their specific portals instantly.</p>
@@ -167,7 +167,7 @@ export default function Navbar() {
               {/* PRIVACY DETAILS */}
               {infoModalContent === 'privacy' && (
                 <>
-                  <p className="text-base font-semibold text-slate-900">At SchoolWeave Live, safeguarding institutional and student data is our highest priority. Our architecture ensures enterprise-grade security at every layer.</p>
+                  <p className="text-base font-semibold text-slate-900">At Digi Saraswati Live, safeguarding institutional and student data is our highest priority. Our architecture ensures enterprise-grade security at every layer.</p>
                   <div>
                     <h4 className="font-bold text-slate-900 mb-1 border-l-4 border-indigo-500 pl-3">End-to-End Encryption</h4>
                     <p className="pl-4">All data transmitted between your device and our servers is protected using industry-standard SSL/TLS encryption. Sensitive credentials, including passwords, are hashed and never stored in plain text.</p>
@@ -189,13 +189,13 @@ export default function Navbar() {
                   <p className="text-base font-semibold text-slate-900">We are committed to providing exceptional support to ensure a smooth digital transition for your campus.</p>
                   <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
                     <h4 className="font-bold text-slate-900 mb-2">Campus Onboarding & Registration</h4>
-                    <p className="mb-3">If you are an institute director or principal looking to list your school on SchoolWeave Live, our onboarding team is ready to assist you with database setup and faculty training.</p>
-                    <a href="mailto:support.schoolweave@gmail.com" className="text-amber-600 font-bold hover:underline flex items-center gap-1">Contact Onboarding Team <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></a>
+                    <p className="mb-3">If you are an institute director or principal looking to list your school on Digi Saraswati Live, our onboarding team is ready to assist you with database setup and faculty training.</p>
+                    <a href="mailto:support.digisaraswati@gmail.com" className="text-amber-600 font-bold hover:underline flex items-center gap-1">Contact Onboarding Team <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></a>
                   </div>
                   <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 mt-4">
                     <h4 className="font-bold text-slate-900 mb-2">Technical Support</h4>
                     <p className="mb-3">Encountering an issue with attendance syncing, marksheet generation, or account recovery? Please reach out to your respective Institute Admin first. For platform-wide bugs, contact our technical desk.</p>
-                    <p className="font-medium text-slate-800">Support Email: <span className="text-indigo-600 font-bold ml-1">support.schoolweave@gmail.com</span></p>
+                    <p className="font-medium text-slate-800">Support Email: <span className="text-indigo-600 font-bold ml-1">support.Digi Saraswati@gmail.com</span></p>
                   </div>
                 </>
               )}
@@ -231,7 +231,7 @@ export default function Navbar() {
               </div>
               <div>
                  <p className="text-sm font-bold">Hello, {userEmail ? getFirstNameFromEmail(userEmail) : 'Guest'}</p>
-                 <p className="text-[10px] text-slate-300">Welcome to SchoolWeave</p>
+                 <p className="text-[10px] text-slate-300">Welcome to Digi Saraswati</p>
               </div>
            </div>
            <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white transition p-1">
@@ -285,11 +285,13 @@ export default function Navbar() {
       }`}>
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap md:flex-nowrap items-center justify-between gap-3 md:gap-6">
           <Link to="/" className="flex items-center gap-2 group shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-600 text-white font-black text-base flex items-center justify-center shadow-md">
-              S
-            </div>
+      <img 
+  src="/favicon.svg" 
+  alt="Digi Saraswati Logo" 
+  className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-contain"
+/>
             <span className="text-lg font-black tracking-tight hidden sm:block">
-              SchoolWeave <span className="text-amber-500">Live</span>
+              Digi Saraswati <span className="text-amber-500">Live</span>
             </span>
           </Link>
 
